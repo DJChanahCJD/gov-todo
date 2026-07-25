@@ -1,0 +1,12 @@
+// https://developers.cloudflare.com/workers/wrangler/configuration/
+{
+  "name": "vibe-pages-vite",
+  "compatibility_date": "2026-01-01",
+  "assets": {
+    // Static Vite build output for Cloudflare Pages.
+    "directory": "./dist",
+  },
+  "observability": {
+    "enabled": true,
+  },
+}

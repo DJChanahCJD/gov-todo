@@ -1,0 +1,284 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* ── Official Gazette · Light (paper) ───────────────── */
+  --radius: 0px;
+  --background: #f4f0e6;
+  --foreground: #0b0b0b;
+  --card: #fbf8ee;
+  --card-foreground: #0b0b0b;
+  --popover: #fbf8ee;
+  --popover-foreground: #0b0b0b;
+  --primary: #0b0b0b;
+  --primary-foreground: #f4f0e6;
+  --secondary: #eae4d2;
+  --secondary-foreground: #0b0b0b;
+  --muted: #e8e2d0;
+  --muted-foreground: #6b6357;
+  --accent: #c8102e;
+  --accent-foreground: #fbf8ee;
+  --destructive: #c8102e;
+  --destructive-foreground: #fbf8ee;
+  --border: #0b0b0b;
+  --input: #0b0b0b;
+  --ring: #c8102e;
+  --chart-1: #c8102e;
+  --chart-2: #0f5132;
+  --chart-3: #0b0b0b;
+  --chart-4: #b8860b;
+  --chart-5: #4a4a4a;
+  --sidebar: #fbf8ee;
+  --sidebar-foreground: #0b0b0b;
+  --sidebar-primary: #0b0b0b;
+  --sidebar-primary-foreground: #f4f0e6;
+  --sidebar-accent: #eae4d2;
+  --sidebar-accent-foreground: #0b0b0b;
+  --sidebar-border: #0b0b0b;
+  --sidebar-ring: #c8102e;
+
+  /* ── Editorial tokens ───────────────────────────────── */
+  --paper-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.045 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --stamp-red: #c8102e;
+  --stamp-green: #0f5132;
+  --shadow-hard: 4px 4px 0px 0px var(--border);
+  --shadow-hard-sm: 2px 2px 0px 0px var(--border);
+  --shadow-hard-lg: 6px 6px 0px 0px var(--border);
+}
+
+.dark {
+  /* ── Official Gazette · Dark (ink) ──────────────────── */
+  --radius: 0px;
+  --background: #0e0e0e;
+  --foreground: #efe9d9;
+  --card: #161616;
+  --card-foreground: #efe9d9;
+  --popover: #161616;
+  --popover-foreground: #efe9d9;
+  --primary: #efe9d9;
+  --primary-foreground: #0e0e0e;
+  --secondary: #1e1e1e;
+  --secondary-foreground: #efe9d9;
+  --muted: #1e1e1e;
+  --muted-foreground: #8a8273;
+  --accent: #ff4d5e;
+  --accent-foreground: #0e0e0e;
+  --destructive: #ff4d5e;
+  --destructive-foreground: #0e0e0e;
+  --border: #efe9d9;
+  --input: #efe9d9;
+  --ring: #ff4d5e;
+  --chart-1: #ff4d5e;
+  --chart-2: #5be5841;
+  --chart-3: #efe9d9;
+  --chart-4: #d4a017;
+  --chart-5: #8a8273;
+  --sidebar: #161616;
+  --sidebar-foreground: #efe9d9;
+  --sidebar-primary: #efe9d9;
+  --sidebar-primary-foreground: #0e0e0e;
+  --sidebar-accent: #1e1e1e;
+  --sidebar-accent-foreground: #efe9d9;
+  --sidebar-border: #efe9d9;
+  --sidebar-ring: #ff4d5e;
+
+  --paper-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.92  0 0 0 0 0.85  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --stamp-red: #ff4d5e;
+  --stamp-green: #5be5841;
+  --shadow-hard: 4px 4px 0px 0px var(--border);
+  --shadow-hard-sm: 2px 2px 0px 0px var(--border);
+  --shadow-hard-lg: 6px 6px 0px 0px var(--border);
+}
+
+@theme inline {
+  --font-display: "Archivo Black", "Arial Black", "Impact", sans-serif;
+  --font-sans: "IBM Plex Sans", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
+  --font-serif: "Fraunces", "Georgia", "Times New Roman", serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  /* ── Brutalist: force all radii to hard 0px ────────── */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-stamp-red: var(--stamp-red);
+  --color-stamp-green: var(--stamp-green);
+  --color-paper-grain: var(--paper-grain);
+  --shadow-hard: var(--shadow-hard);
+  --shadow-hard-sm: var(--shadow-hard-sm);
+  --shadow-hard-lg: var(--shadow-hard-lg);
+  --radius-hard: 0px;
+  --radius-soft: 2px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  /* ── Paper grain overlay (fixed, never scroll) ────── */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    background-image: var(--paper-grain);
+    background-size: 240px 240px;
+    opacity: 0.55;
+    mix-blend-mode: multiply;
+  }
+
+  .dark body::before {
+    mix-blend-mode: screen;
+    opacity: 0.4;
+  }
+
+  /* ── Selection: stamped red ────────────────────────── */
+  ::selection {
+    background: var(--stamp-red);
+    color: var(--background);
+  }
+
+  html {
+    scrollbar-gutter: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    @apply dark:[scrollbar-color:var(--muted-foreground)_transparent];
+  }
+
+  html::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  html::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html::-webkit-scrollbar-thumb {
+    background-color: var(--muted-foreground);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  html::-webkit-scrollbar-thumb:hover {
+    background-color: var(--foreground);
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv01", "cv11";
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+  }
+}
+
+@layer utilities {
+  /* ── Brutalist hard shadows (zero blur, ink offset) ── */
+  .shadow-brutal-sm {
+    box-shadow: var(--shadow-hard-sm);
+  }
+  .shadow-brutal {
+    box-shadow: var(--shadow-hard);
+  }
+  .shadow-brutal-lg {
+    box-shadow: var(--shadow-hard-lg);
+  }
+
+  /* ── Stamp text: tracked uppercase with red ink ───── */
+  .stamp {
+    font-family: var(--font-mono);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  /* ── Editorial drop numeral (oversized section §) ─── */
+  .editorial-numeral {
+    font-family: var(--font-display);
+    line-height: 0.8;
+    letter-spacing: -0.04em;
+  }
+
+  /* ── Magazine italic accent ────────────────────────── */
+  .serif-italic {
+    font-family: var(--font-serif);
+    font-style: italic;
+  }
+
+  /* ── Animated page-load reveal ─────────────────────── */
+  @keyframes gazette-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .gazette-in {
+    animation: gazette-in 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+
+  /* ── Stamp press animation ─────────────────────────── */
+  @keyframes stamp-press {
+    0% {
+      transform: scale(1.6) rotate(-12deg);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.05) rotate(-8deg);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1) rotate(-8deg);
+      opacity: 1;
+    }
+  }
+  .stamp-in {
+    animation: stamp-press 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+}
