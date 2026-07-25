@@ -1,7 +1,7 @@
 import type { Task, RecurringTemplate } from "@/lib/types";
 
 const DB_NAME = "gov-todo";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const TASK_STORE = "tasks";
 const TEMPLATE_STORE = "templates";
 
@@ -11,11 +11,14 @@ function open(): Promise<IDBDatabase> {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
+      // 模板存储结构变更，删除旧 store 重建
+      if (db.objectStoreNames.contains(TEMPLATE_STORE)) {
+        db.deleteObjectStore(TEMPLATE_STORE);
+      }
+      db.createObjectStore(TEMPLATE_STORE, { keyPath: "id" });
+
       if (!db.objectStoreNames.contains(TASK_STORE)) {
         db.createObjectStore(TASK_STORE, { keyPath: "id" });
-      }
-      if (!db.objectStoreNames.contains(TEMPLATE_STORE)) {
-        db.createObjectStore(TEMPLATE_STORE, { keyPath: "id" });
       }
     };
     request.onsuccess = () => resolve(request.result);

@@ -18,12 +18,17 @@ interface TaskState {
     deadline?: string;
     quadrant?: Quadrant;
     templateId?: string;
+    description?: string;
   }) => Promise<Task>;
 
   /** 更新任务标题或截止时间 */
   update: (
     id: string,
-    data: { title?: string; deadline?: string | null }
+    data: {
+      title?: string;
+      deadline?: string | null;
+      description?: string | null;
+    }
   ) => Promise<void>;
 
   /** 切换置顶 */
@@ -78,6 +83,7 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
       pinned: false,
       createdAt: new Date().toISOString(),
       templateId: data.templateId,
+      description: data.description,
     };
     await db.putTask(task);
     set((s) => ({ tasks: [...s.tasks, task] }));
@@ -93,6 +99,8 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
     if (data.title !== undefined) updated.title = data.title;
     if (data.deadline !== undefined)
       updated.deadline = data.deadline ?? undefined;
+    if (data.description !== undefined)
+      updated.description = data.description ?? undefined;
     await db.putTask(updated);
     set({ tasks: tasks.map((t) => (t.id === id ? updated : t)) });
   },

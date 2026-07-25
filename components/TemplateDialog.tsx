@@ -18,22 +18,34 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Pencil, Trash2, Clock } from "lucide-react";
-import type { RecurringTemplate, Quadrant, TemplatePreset } from "@/lib/types";
-import { QUADRANT_LABELS, PRESET_CRON, PRESET_LABELS } from "@/lib/types";
+import type {
+  RecurringTemplate,
+  RecurringType,
+  RecurringRule,
+  WeeklyRule,
+  MonthlyRule,
+  YearlyRule,
+  IntervalRule,
+  Quadrant,
+} from "@/lib/types";
+import { QUADRANT_LABELS, DEFAULT_LEAD_DAYS } from "@/lib/types";
 import { useTemplateStore } from "@/stores/template-store";
+import { formatRuleLabel } from "@/lib/utils/recurring";
 
 interface TemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const PRESETS: TemplatePreset[] = [
-  "daily",
-  "weekly",
-  "monthly",
-  "yearly",
-  "custom",
+const TYPES: { value: RecurringType; label: string }[] = [
+  { value: "daily", label: "每天" },
+  { value: "weekly", label: "每周" },
+  { value: "monthly", label: "每月" },
+  { value: "yearly", label: "每年" },
+  { value: "interval", label: "每隔" },
 ];
+
+const WEEK_DAYS = ["日", "一", "二", "三", "四", "五", "六"];
 
 /** 周期任务模板管理弹窗 */
 export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
@@ -46,39 +58,85 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [quadrant, setQuadrant] = useState<Quadrant>(1);
-  const [preset, setPreset] = useState<TemplatePreset>("weekly");
-  const [customCron, setCustomCron] = useState("");
+  const [type, setType] = useState<RecurringType>("weekly");
+  const [leadDays, setLeadDays] = useState(DEFAULT_LEAD_DAYS.weekly);
+
+  // 各类型规则参数
+  const [weeklyDay, setWeeklyDay] = useState(1); // 周一
+  const [monthlyDay, setMonthlyDay] = useState(1);
+  const [yearlyMonth, setYearlyMonth] = useState(1);
+  const [yearlyDay, setYearlyDay] = useState(1);
+  const [intervalEvery, setIntervalEvery] = useState(7);
+
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) load();
   }, [open, load]);
 
+  /** 类型切换时更新默认 leadDays */
+  function handleTypeChange(t: RecurringType) {
+    setType(t);
+    setLeadDays(DEFAULT_LEAD_DAYS[t]);
+  }
+
+  /** 构建当前 rule 对象 */
+  function buildRule(): RecurringRule {
+    switch (type) {
+      case "daily":
+        return {};
+      case "weekly":
+        return { dayOfWeek: weeklyDay } as WeeklyRule;
+      case "monthly":
+        return { day: monthlyDay } as MonthlyRule;
+      case "yearly":
+        return { month: yearlyMonth, day: yearlyDay } as YearlyRule;
+      case "interval":
+        return { every: intervalEvery } as IntervalRule;
+    }
+  }
+
   function resetForm() {
     setTitle("");
     setDescription("");
     setQuadrant(1);
-    setPreset("weekly");
-    setCustomCron("");
+    setType("weekly");
+    setLeadDays(DEFAULT_LEAD_DAYS.weekly);
+    setWeeklyDay(1);
+    setMonthlyDay(1);
+    setYearlyMonth(1);
+    setYearlyDay(1);
+    setIntervalEvery(7);
     setEditingTemplate(null);
     setShowForm(true);
   }
 
+  /** 编辑模板时回填数据 */
   function openEdit(t: RecurringTemplate) {
     setEditingTemplate(t);
     setTitle(t.title);
     setDescription(t.description);
     setQuadrant(t.quadrant);
-    // 反推预设类型
-    const matched = (
-      Object.entries(PRESET_CRON) as [TemplatePreset, string][]
-    ).find(([, c]) => c === t.cron && c !== "");
-    if (matched) {
-      setPreset(matched[0]);
-      setCustomCron("");
-    } else {
-      setPreset("custom");
-      setCustomCron(t.cron);
+    setType(t.type);
+    setLeadDays(t.leadDays);
+
+    // 回填规则参数
+    switch (t.type) {
+      case "weekly":
+        setWeeklyDay((t.rule as WeeklyRule).dayOfWeek);
+        break;
+      case "monthly":
+        setMonthlyDay((t.rule as MonthlyRule).day);
+        break;
+      case "yearly": {
+        const yr = t.rule as YearlyRule;
+        setYearlyMonth(yr.month);
+        setYearlyDay(yr.day);
+        break;
+      }
+      case "interval":
+        setIntervalEvery((t.rule as IntervalRule).every);
+        break;
     }
     setShowForm(true);
   }
@@ -86,36 +144,32 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
   async function handleSave() {
     const trimmed = title.trim();
     if (!trimmed) return;
-    const cron = preset === "custom" ? customCron.trim() : PRESET_CRON[preset];
-    if (!cron) return;
     setSaving(true);
     try {
+      const rule = buildRule();
       if (editingTemplate) {
         await update(editingTemplate.id, {
           title: trimmed,
           description: description.trim(),
           quadrant,
-          cron,
+          type,
+          rule,
+          leadDays,
         });
       } else {
         await add({
           title: trimmed,
           description: description.trim(),
           quadrant,
-          cron,
+          type,
+          rule,
+          leadDays,
         });
       }
       setShowForm(false);
     } finally {
       setSaving(false);
     }
-  }
-
-  function getPresetLabel(t: RecurringTemplate): string {
-    for (const [key, cron] of Object.entries(PRESET_CRON)) {
-      if (cron && cron === t.cron) return PRESET_LABELS[key as TemplatePreset];
-    }
-    return "自定义";
   }
 
   return (
@@ -125,7 +179,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
           <DialogTitle>周期任务模板</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <ScrollArea className="flex-1">
           <div className="space-y-4 pt-2">
             {/* 模板列表 */}
             {!showForm && (
@@ -148,7 +202,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {getPresetLabel(t)}
+                              {formatRuleLabel(t.type, t.rule)}
                             </span>
                             {t.description && (
                               <span className="text-xs text-muted-foreground truncate">
@@ -162,12 +216,14 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                           onCheckedChange={(v) => update(t.id, { enabled: v })}
                         />
                         <button
+                          title="编辑"
                           onClick={() => openEdit(t)}
                           className="h-7 w-7 flex items-center justify-center border-[3px] border-border bg-background hover:bg-secondary transition-colors"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
+                          title="删除"
                           onClick={() => remove(t.id)}
                           className="h-7 w-7 flex items-center justify-center border-[3px] border-border bg-background text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"
                         >
@@ -210,29 +266,156 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                     placeholder="补充说明"
                   />
                 </div>
+
+                {/* 周期类型选择 */}
                 <div className="space-y-2">
                   <Label>周期</Label>
                   <div className="flex gap-1.5 flex-wrap">
-                    {PRESETS.map((p) => (
+                    {TYPES.map(({ value, label }) => (
                       <Button
-                        key={p}
-                        variant={preset === p ? "default" : "outline"}
+                        key={value}
+                        variant={type === value ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setPreset(p)}
+                        onClick={() => handleTypeChange(value)}
                       >
-                        {PRESET_LABELS[p]}
+                        {label}
                       </Button>
                     ))}
                   </div>
-                  {preset === "custom" && (
-                    <Input
-                      value={customCron}
-                      onChange={(e) => setCustomCron(e.target.value)}
-                      placeholder="cron 表达式，例：0 0 28 * *"
-                      className="mt-2"
-                    />
+                </div>
+
+                {/* 规则参数 */}
+                <div className="space-y-2">
+                  <Label>规则</Label>
+                  {type === "daily" && (
+                    <p className="text-sm text-muted-foreground">
+                      每天生成一条任务
+                    </p>
+                  )}
+                  {type === "weekly" && (
+                    <div className="flex gap-1.5">
+                      {WEEK_DAYS.map((label, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setWeeklyDay(i)}
+                          className={`h-9 w-9 flex items-center justify-center text-sm border-[3px] border-border transition-colors ${
+                            weeklyDay === i
+                              ? "bg-foreground text-background"
+                              : "bg-background hover:bg-secondary"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {type === "monthly" && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        每月
+                      </span>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={28}
+                        value={monthlyDay}
+                        onChange={(e) =>
+                          setMonthlyDay(
+                            Math.max(
+                              1,
+                              Math.min(28, Number(e.target.value) || 1)
+                            )
+                          )
+                        }
+                        className="w-20"
+                      />
+                      <span className="text-sm text-muted-foreground">号</span>
+                    </div>
+                  )}
+                  {type === "yearly" && (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={12}
+                        value={yearlyMonth}
+                        onChange={(e) =>
+                          setYearlyMonth(
+                            Math.max(
+                              1,
+                              Math.min(12, Number(e.target.value) || 1)
+                            )
+                          )
+                        }
+                        className="w-20"
+                      />
+                      <span className="text-sm text-muted-foreground">月</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={yearlyDay}
+                        onChange={(e) =>
+                          setYearlyDay(
+                            Math.max(
+                              1,
+                              Math.min(31, Number(e.target.value) || 1)
+                            )
+                          )
+                        }
+                        className="w-20"
+                      />
+                      <span className="text-sm text-muted-foreground">日</span>
+                    </div>
+                  )}
+                  {type === "interval" && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">每</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={intervalEvery}
+                        onChange={(e) =>
+                          setIntervalEvery(
+                            Math.max(
+                              1,
+                              Math.min(365, Number(e.target.value) || 1)
+                            )
+                          )
+                        }
+                        className="w-20"
+                      />
+                      <span className="text-sm text-muted-foreground">天</span>
+                    </div>
                   )}
                 </div>
+
+                {/* 提前天数 */}
+                <div className="space-y-2">
+                  <Label htmlFor="tpl-lead">提前出现在 TODO</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="tpl-lead"
+                      type="number"
+                      min={0}
+                      max={365}
+                      value={leadDays}
+                      onChange={(e) =>
+                        setLeadDays(
+                          Math.max(
+                            0,
+                            Math.min(365, Number(e.target.value) || 0)
+                          )
+                        )
+                      }
+                      className="w-20"
+                    />
+                    <span className="text-sm text-muted-foreground">天</span>
+                  </div>
+                </div>
+
+                {/* 默认象限 */}
                 <div className="space-y-2">
                   <Label>默认象限</Label>
                   <Select
@@ -256,6 +439,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="outline" onClick={() => setShowForm(false)}>
                     取消

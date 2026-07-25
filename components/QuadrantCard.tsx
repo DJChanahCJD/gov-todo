@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Flame, Calendar, Users, Parasol } from "lucide-react";
 import type { Task, Quadrant } from "@/lib/types";
 import { QUADRANT_LABELS } from "@/lib/types";
 import { selectActiveByQuadrant, useTaskStore } from "@/stores/task-store";
@@ -10,47 +10,54 @@ import { cn } from "@/lib/utils";
 const QUADRANT_CONFIG: Record<
   Quadrant,
   {
-    numeral: string;
+    icon: React.ComponentType<{
+      className?: string;
+      style?: React.CSSProperties;
+      strokeWidth?: number;
+    }>;
     cardBg: string;
     headerBg: string;
     titleColor: string;
     bodyOpacity: string;
     itemBg: string;
-    badge?: string;
+    accentColor: string;
   }
 > = {
   0: {
-    numeral: "I",
+    icon: Flame,
     cardBg: "bg-background",
     headerBg: "",
     titleColor: "text-foreground",
     bodyOpacity: "",
     itemBg: "bg-card",
-    badge: "bg-destructive text-destructive-foreground",
+    accentColor: "#ef4444",
   },
   1: {
-    numeral: "II",
-    cardBg: "bg-secondary",
-    headerBg: "",
-    titleColor: "text-secondary-foreground",
-    bodyOpacity: "",
-    itemBg: "bg-background",
-  },
-  2: {
-    numeral: "III",
-    cardBg: "bg-muted quadrant-bg-1",
+    icon: Calendar,
+    cardBg: "bg-background",
     headerBg: "",
     titleColor: "text-foreground",
     bodyOpacity: "",
     itemBg: "bg-card",
+    accentColor: "#22c55e",
+  },
+  2: {
+    icon: Users,
+    cardBg: "bg-background",
+    headerBg: "",
+    titleColor: "text-foreground",
+    bodyOpacity: "",
+    itemBg: "bg-card",
+    accentColor: "#3b82f6",
   },
   3: {
-    numeral: "IV",
-    cardBg: "bg-muted/60",
+    icon: Parasol,
+    cardBg: "bg-background",
     headerBg: "",
     titleColor: "text-muted-foreground",
     bodyOpacity: "opacity-60",
     itemBg: "bg-card",
+    accentColor: "#9ca3af",
   },
 };
 
@@ -73,7 +80,7 @@ export function QuadrantCard({
   const { moveQuadrant } = useTaskStore();
   const [dragOver, setDragOver] = useState(false);
   const cfg = QUADRANT_CONFIG[quadrant];
-  const { title } = QUADRANT_LABELS[quadrant];
+  const { title, subtitle } = QUADRANT_LABELS[quadrant];
   const activeTasks = selectActiveByQuadrant(tasks, quadrant);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -101,13 +108,16 @@ export function QuadrantCard({
         cfg.cardBg,
         dragOver && "ring-2 ring-secondary"
       )}
+      style={{ backgroundColor: `${cfg.accentColor}10` }}
     >
-      {/* 标题栏：罗马序号 + 英文短标题 + 加号 */}
+      {/* 标题栏：图标 + 英文短标题 + 加号 */}
       <header className="flex items-center justify-between border-b-[3px] border-border pb-2">
-        <div className="flex items-baseline gap-2.5">
-          <span className="editorial-numeral text-base text-muted-foreground">
-            {cfg.numeral}
-          </span>
+        <div className="flex items-center gap-2.5">
+          <cfg.icon
+            className="h-5 w-5"
+            style={{ color: cfg.accentColor }}
+            strokeWidth={2.5}
+          />
           <h3
             className={cn(
               "font-display text-lg font-black uppercase tracking-tight leading-none",
@@ -116,21 +126,15 @@ export function QuadrantCard({
           >
             {title}
           </h3>
-          {cfg.badge && (
-            <span
-              className={cn(
-                "h-6 w-6 flex items-center justify-center font-black text-sm",
-                cfg.badge
-              )}
-            >
-              !
-            </span>
-          )}
+          <span className="text-xs text-muted-foreground font-normal normal-case tracking-normal">
+            {subtitle}
+          </span>
         </div>
         <button
           onClick={onAdd}
+          title="添加任务"
           aria-label="Add task"
-          className="h-7 w-7 flex items-center justify-center border-[3px] border-border bg-background neo-press"
+          className="h-7 w-7 flex items-center justify-center border-[3px] border-border bg-background hover:bg-secondary hover:text-secondary-foreground"
         >
           <Plus className="h-4 w-4" strokeWidth={3} />
         </button>
@@ -152,6 +156,7 @@ export function QuadrantCard({
                 onEdit={onEdit}
                 onDragStart={onDragStart}
                 itemBg={cfg.itemBg}
+                accentColor={cfg.accentColor}
               />
             ))}
       </div>

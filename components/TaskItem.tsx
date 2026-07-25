@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Pin, PinOff, Clock, Pencil } from "lucide-react";
+import { Pin, PinOff, Clock } from "lucide-react";
 import { differenceInCalendarDays, format, isToday, parseISO } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import type { Task } from "@/lib/types";
@@ -12,6 +12,8 @@ interface TaskItemProps {
   onDragStart: (e: React.DragEvent, task: Task) => void;
   /** 任务条背景（依所在象限而定） */
   itemBg?: string;
+  /** 象限强调色 */
+  accentColor?: string;
 }
 
 /** 格式化截止时间显示 */
@@ -19,6 +21,7 @@ function formatDeadline(deadline: string): {
   text: string;
   state: "overdue" | "urgent" | "normal";
   label: string;
+  title: string;
 } {
   const date = parseISO(deadline);
   const now = new Date();
@@ -27,13 +30,17 @@ function formatDeadline(deadline: string): {
   const md = crossYear
     ? format(date, "yyyy年M月d日", { locale: zhCN })
     : format(date, "M月d日", { locale: zhCN });
+  const title = format(date, "yyyy年M月d日", { locale: zhCN });
 
-  if (days < 0) return { text: md, state: "overdue", label: "逾期 OVERDUE" };
-  if (days === 0) return { text: "今天", state: "urgent", label: "DUE TODAY" };
+  if (days < 0)
+    return { text: md, state: "overdue", label: "逾期 OVERDUE", title };
+  if (days === 0)
+    return { text: "今天", state: "urgent", label: "DUE TODAY", title };
   if (days === 1)
-    return { text: "明天", state: "urgent", label: "DUE TOMORROW" };
-  if (days === 2) return { text: md, state: "urgent", label: "DEADLINE SOON" };
-  return { text: md, state: "normal", label: "DEADLINE" };
+    return { text: "明天", state: "urgent", label: "DUE TOMORROW", title };
+  if (days === 2)
+    return { text: md, state: "urgent", label: "DEADLINE SOON", title };
+  return { text: md, state: "normal", label: "DEADLINE", title };
 }
 
 /** 单个活跃任务条 */
@@ -42,6 +49,7 @@ export function TaskItem({
   onEdit,
   onDragStart,
   itemBg = "bg-card",
+  accentColor,
 }: TaskItemProps) {
   const { togglePin, toggleComplete } = useTaskStore();
   const doneToday = !!task.completedAt && isToday(parseISO(task.completedAt));
@@ -59,22 +67,37 @@ export function TaskItem({
     <div
       draggable
       onDragStart={handleDragStart}
-      onClick={() => toggleComplete(task.id)}
+      onClick={() => onEdit(task)}
       className={cn(
         "group flex items-center justify-between w-full gap-2 border-[3px] border-border p-2 cursor-pointer transition-colors",
         itemBg,
-        "hover:bg-secondary hover:text-secondary-foreground",
+        "hover:text-secondary-foreground hover-accent",
         task.pinned && "ring-2 ring-secondary ring-offset-[-3px]",
         doneToday && "opacity-60"
       )}
+      style={
+        accentColor
+          ? ({
+              "--hover-bg": `${accentColor}30`,
+            } as React.CSSProperties)
+          : undefined
+      }
     >
       {/* 左：勾选 + 标题 */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        <span
+        <button
+          title={doneToday ? "取消完成" : "标记完成"}
           aria-hidden
+          type="button"
+          role="checkbox"
+          aria-checked={doneToday}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleComplete(task.id);
+          }}
           className={cn(
-            "h-5 w-5 shrink-0 flex items-center justify-center border-[3px] border-border transition-colors",
-            doneToday ? "bg-primary text-primary-foreground" : "bg-transparent"
+            "h-5 w-5 shrink-0 flex items-center justify-center border-[3px] border-border transition-colors cursor-pointer",
+            doneToday ? "bg-primary text-primary-foreground" : "bg-card"
           )}
         >
           {doneToday && (
@@ -88,12 +111,11 @@ export function TaskItem({
               />
             </svg>
           )}
-        </span>
+        </button>
 
         <h4
           className={cn(
             "font-bold text-sm truncate flex-1",
-            "group-hover:line-through",
             doneToday && "line-through",
             task.pinned && "font-black"
           )}
@@ -116,7 +138,7 @@ export function TaskItem({
               deadlineInfo.state === "normal" &&
                 "bg-background text-muted-foreground"
             )}
-            title={deadlineInfo.label}
+            title={deadlineInfo.title}
           >
             <Clock className="h-2.5 w-2.5" />
             {deadlineInfo.text}
@@ -128,6 +150,7 @@ export function TaskItem({
             e.stopPropagation();
             togglePin(task.id);
           }}
+          title={task.pinned ? "取消置顶" : "置顶"}
           aria-label={task.pinned ? "取消置顶" : "置顶"}
           className={cn(
             "h-7 w-7 flex items-center justify-center border-[3px] border-border transition-colors",
@@ -141,17 +164,6 @@ export function TaskItem({
           ) : (
             <PinOff className="h-3.5 w-3.5" />
           )}
-        </button>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit(task);
-          }}
-          aria-label="编辑"
-          className="h-7 w-7 flex items-center justify-center border-[3px] border-border bg-background text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
-        >
-          <Pencil className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>

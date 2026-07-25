@@ -6,6 +6,7 @@ export interface Task {
   id: string;
   title: string;
   deadline?: string; // ISO 日期字符串
+  description?: string;
   quadrant: Quadrant;
   pinned: boolean;
   createdAt: string; // ISO datetime
@@ -13,24 +14,67 @@ export interface Task {
   templateId?: string; // 关联的周期模板 id
 }
 
+/** 周期类型 */
+export type RecurringType =
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "yearly"
+  | "interval";
+
+/** 每天（无额外参数） */
+export interface DailyRule {}
+
+/** 每周：指定星期几 0=周日 1=周一 ... 6=周六 */
+export interface WeeklyRule {
+  dayOfWeek: number;
+}
+
+/** 每月：指定几号（1-28） */
+export interface MonthlyRule {
+  day: number;
+}
+
+/** 每年：指定月日 */
+export interface YearlyRule {
+  month: number; // 1-12
+  day: number; // 1-31
+}
+
+/** 每隔 N 天 */
+export interface IntervalRule {
+  every: number;
+}
+
+export type RecurringRule =
+  | DailyRule
+  | WeeklyRule
+  | MonthlyRule
+  | YearlyRule
+  | IntervalRule;
+
 /** 周期任务模板 */
 export interface RecurringTemplate {
   id: string;
   title: string;
   description: string;
   quadrant: Quadrant;
-  cron: string; // cron 表达式，底层存储
+  type: RecurringType;
+  rule: RecurringRule;
+  leadDays: number; // 提前多少天出现在 TODO 列表
+  lastGeneratedFor: string; // 周期标识（如 "2026" / "2026-07" / "2026-07-25"）
+  nextGenerateAt: string; // 下次生成时间 ISO 字符串
   enabled: boolean;
-  lastGenerated?: string; // 上次生成实例的时间
 }
 
-/** 模板预设类型（UI 层面友好选项） */
-export type TemplatePreset =
-  | "daily"
-  | "weekly"
-  | "monthly"
-  | "yearly"
-  | "custom";
+/** 各类型默认提前天数 */
+export const DEFAULT_LEAD_DAYS: Record<RecurringType, number> = {
+  daily: 0,
+  weekly: 3,
+  monthly: 7,
+  yearly: 30,
+  interval: 0,
+};
 
 /** 象限标签映射 */
 export const QUADRANT_LABELS: Record<
@@ -40,23 +84,5 @@ export const QUADRANT_LABELS: Record<
   0: { title: "Do", subtitle: "重要且紧急" },
   1: { title: "Schedule", subtitle: "重要但不紧急" },
   2: { title: "Delegate", subtitle: "紧急但不重要" },
-  3: { title: "Delete", subtitle: "不紧急且不重要" },
-};
-
-/** 预设 cron 表达式映射 */
-export const PRESET_CRON: Record<TemplatePreset, string> = {
-  daily: "0 0 * * *",
-  weekly: "0 0 * * 1",
-  monthly: "0 0 1 * *",
-  yearly: "0 0 1 1 *",
-  custom: "",
-};
-
-/** 预设 cron 标签 */
-export const PRESET_LABELS: Record<TemplatePreset, string> = {
-  daily: "每日",
-  weekly: "每周",
-  monthly: "每月",
-  yearly: "每年",
-  custom: "自定义",
+  3: { title: "Eliminate", subtitle: "不紧急且不重要" },
 };

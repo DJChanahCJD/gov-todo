@@ -1,47 +1,141 @@
-import type { RecurringTemplate } from "@/lib/types";
+import type {
+  RecurringTemplate,
+  RecurringType,
+  RecurringRule,
+  WeeklyRule,
+  MonthlyRule,
+  YearlyRule,
+  IntervalRule,
+} from "@/lib/types";
+import type { Quadrant } from "@/lib/types";
+import { DEFAULT_LEAD_DAYS } from "@/lib/types";
 
-/**
- * 将 Date 格式化为本地 YYYY-MM-DD 字符串（避免 toISOString 的 UTC 偏移）。
- */
-function toLocalDateStr(d: Date): string {
+/** 格式化日期为 YYYY-MM-DD */
+function toDateStr(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
+/** 解析 YYYY-MM-DD 字符串 */
+function parseDateStr(s: string): Date | null {
+  const parts = s.split("-");
+  if (parts.length !== 3) return null;
+  const [y, m, d] = parts.map(Number);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+  return new Date(y, m - 1, d);
+}
+
+/** 日期减 N 天 */
+function subDays(d: Date, n: number): Date {
+  const r = new Date(d);
+  r.setDate(r.getDate() - n);
+  return r;
+}
+
 /**
- * 根据 cron 简单表达式计算下一个需生成的截止时间。
- * 支持的格式：分 时 日 月 周
- * 仅处理简单预设场景（每日/每周/每月/每年），不实现完整 cron 解析。
+ * 格式化周期标识。
+ * daily/weekly/interval → "YYYY-MM-DD"
+ * monthly → "YYYY-MM"
+ * yearly → "YYYY"
  */
-function nextDeadline(cron: string, from: Date): Date | null {
-  const parts = cron.trim().split(/\s+/);
-  if (parts.length < 5) return null;
-
-  const [minute, hour, day, month, weekday] = parts;
-
-  const next = new Date(from);
-  next.setSeconds(0, 0);
-  next.setHours(parseInt(hour), parseInt(minute));
-
-  // 每日 "0 0 * * *"
-  if (day === "*" && month === "*" && weekday === "*") {
-    if (next <= from) next.setDate(next.getDate() + 1);
-    return next;
+function formatPeriod(date: Date, type: RecurringType): string {
+  switch (type) {
+    case "daily":
+    case "weekly":
+    case "interval":
+      return toDateStr(date);
+    case "monthly":
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    case "yearly":
+      return `${date.getFullYear()}`;
   }
+}
 
-  // 每月 "0 0 D * *"
-  if (day !== "*" && month === "*" && weekday === "*") {
-    const dayNum = parseInt(day);
-    if (isNaN(dayNum) || dayNum < 1 || dayNum > 31) return null;
-    const d = new Date(from);
-    d.setSeconds(0, 0);
-    d.setHours(parseInt(hour), parseInt(minute));
-    d.setDate(
-      Math.min(dayNum, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate())
-    );
-    if (d <= from) {
+/**
+ * 计算事件日期。
+ * 若 lastGeneratedFor 为空，返回从 now 开始的第一个事件日期；
+ * 否则返回 lastGeneratedFor 标识的周期之后的下一个事件日期。
+ */
+function calculateEventDate(
+  type: RecurringType,
+  rule: RecurringRule,
+  lastGeneratedFor: string,
+  now: Date
+): Date {
+  switch (type) {
+    case "daily": {
+      if (!lastGeneratedFor)
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const parsed = parseDateStr(lastGeneratedFor);
+      if (!parsed) return new Date(now);
+      parsed.setDate(parsed.getDate() + 1);
+      return parsed;
+    }
+
+    case "weekly": {
+      const wRule = rule as WeeklyRule;
+      const targetDay = wRule.dayOfWeek;
+      if (!lastGeneratedFor) {
+        const d = new Date(now);
+        d.setHours(0, 0, 0, 0);
+        const diff = (targetDay - d.getDay() + 7) % 7;
+        d.setDate(d.getDate() + (diff === 0 ? 0 : diff));
+        if (toDateStr(d) < toDateStr(now)) d.setDate(d.getDate() + 7);
+        return d;
+      }
+      const parsed = parseDateStr(lastGeneratedFor);
+      if (!parsed) {
+        const d = new Date(now);
+        d.setHours(0, 0, 0, 0);
+        const diff = (targetDay - d.getDay() + 7) % 7;
+        d.setDate(d.getDate() + diff);
+        if (toDateStr(d) < toDateStr(now)) d.setDate(d.getDate() + 7);
+        return d;
+      }
+      parsed.setDate(parsed.getDate() + 1);
+      const diff = (targetDay - parsed.getDay() + 7) % 7;
+      parsed.setDate(parsed.getDate() + diff);
+      return parsed;
+    }
+
+    case "monthly": {
+      const mRule = rule as MonthlyRule;
+      const dayNum = Math.min(mRule.day, 28);
+      if (!lastGeneratedFor) {
+        const d = new Date(now);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(
+          Math.min(
+            dayNum,
+            new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+          )
+        );
+        if (toDateStr(d) < toDateStr(now)) {
+          d.setMonth(d.getMonth() + 1);
+          d.setDate(
+            Math.min(
+              dayNum,
+              new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+            )
+          );
+        }
+        return d;
+      }
+      const [y, m] = lastGeneratedFor.split("-").map(Number);
+      if (isNaN(y) || isNaN(m)) {
+        const d = new Date(now);
+        d.setMonth(d.getMonth() + 1);
+        d.setDate(
+          Math.min(
+            dayNum,
+            new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+          )
+        );
+        return d;
+      }
+      const d = new Date(y, m - 1, 1);
       d.setMonth(d.getMonth() + 1);
       d.setDate(
         Math.min(
@@ -49,141 +143,198 @@ function nextDeadline(cron: string, from: Date): Date | null {
           new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
         )
       );
-    }
-    return d;
-  }
-
-  // 每周 "0 0 * * W"
-  if (day === "*" && month === "*" && weekday !== "*") {
-    const targetDay = parseInt(weekday); // 0=Sun, 1=Mon, ...
-    if (isNaN(targetDay) || targetDay < 0 || targetDay > 7) return null;
-    const d = new Date(from);
-    d.setSeconds(0, 0);
-    d.setHours(parseInt(hour), parseInt(minute));
-    const currentDay = d.getDay();
-    const diff = (targetDay - currentDay + 7) % 7;
-    d.setDate(d.getDate() + (diff === 0 ? 7 : diff));
-    return d;
-  }
-
-  // 每年 "0 0 1 1 *"
-  if (day !== "*" && month !== "*" && weekday === "*") {
-    const dayNum = parseInt(day);
-    const monthNum = parseInt(month);
-    if (isNaN(dayNum) || isNaN(monthNum)) return null;
-    const d = new Date(from);
-    d.setSeconds(0, 0);
-    d.setHours(parseInt(hour), parseInt(minute));
-    d.setMonth(monthNum - 1);
-    d.setDate(
-      Math.min(dayNum, new Date(d.getFullYear(), monthNum, 0).getDate())
-    );
-    if (d <= from) {
-      d.setFullYear(d.getFullYear() + 1);
-      d.setDate(
-        Math.min(dayNum, new Date(d.getFullYear(), monthNum, 0).getDate())
-      );
-    }
-    return d;
-  }
-
-  // 自定义 cron：尝试简单解析
-  if (day !== "*" && month !== "*") {
-    const dayNum = parseInt(day);
-    const monthNum = parseInt(month);
-    if (!isNaN(dayNum) && !isNaN(monthNum)) {
-      const d = new Date(from);
-      d.setSeconds(0, 0);
-      d.setHours(parseInt(hour), parseInt(minute));
-      d.setMonth(monthNum - 1);
-      d.setDate(
-        Math.min(dayNum, new Date(d.getFullYear(), monthNum, 0).getDate())
-      );
-      if (d <= from) {
-        d.setFullYear(d.getFullYear() + 1);
-        d.setDate(
-          Math.min(dayNum, new Date(d.getFullYear(), monthNum, 0).getDate())
-        );
-      }
       return d;
     }
-  }
 
-  return null;
-}
-
-/**
- * 计算模板当前应生成但尚未生成的周期。
- * 返回所有需要生成的截止时间列表。
- */
-function pendingPeriods(template: RecurringTemplate, now: Date): Date[] {
-  const results: Date[] = [];
-
-  let from = template.lastGenerated
-    ? new Date(
-        Math.max(
-          new Date(template.lastGenerated).getTime(),
-          now.getTime() - 365 * 24 * 60 * 60 * 1000
-        )
-      )
-    : new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); // 最多回溯 90 天
-
-  // 向前查找下一个周期，直到超过当前时间
-  let safety = 0;
-  let cursor = new Date(from);
-  while (safety < 366) {
-    const next = nextDeadline(template.cron, cursor);
-    if (!next || next > now) break;
-    // 避免重复
-    if (
-      results.length === 0 ||
-      next.getTime() !== results[results.length - 1].getTime()
-    ) {
-      results.push(new Date(next));
+    case "yearly": {
+      const yRule = rule as YearlyRule;
+      if (!lastGeneratedFor) {
+        const d = new Date(now);
+        d.setHours(0, 0, 0, 0);
+        d.setMonth(yRule.month - 1);
+        d.setDate(
+          Math.min(
+            yRule.day,
+            new Date(d.getFullYear(), yRule.month, 0).getDate()
+          )
+        );
+        if (toDateStr(d) < toDateStr(now)) {
+          d.setFullYear(d.getFullYear() + 1);
+          d.setDate(
+            Math.min(
+              yRule.day,
+              new Date(d.getFullYear(), yRule.month, 0).getDate()
+            )
+          );
+        }
+        return d;
+      }
+      const year = parseInt(lastGeneratedFor);
+      if (isNaN(year)) {
+        const d = new Date(now);
+        d.setHours(0, 0, 0, 0);
+        d.setMonth(yRule.month - 1);
+        d.setDate(
+          Math.min(
+            yRule.day,
+            new Date(d.getFullYear(), yRule.month, 0).getDate()
+          )
+        );
+        if (d <= now) d.setFullYear(d.getFullYear() + 1);
+        return d;
+      }
+      const d = new Date(year + 1, yRule.month - 1, 1);
+      d.setDate(
+        Math.min(yRule.day, new Date(d.getFullYear(), yRule.month, 0).getDate())
+      );
+      return d;
     }
-    cursor = new Date(next.getTime() + 60 * 1000); // 1分钟后继续
-    safety++;
-  }
 
-  return results;
+    case "interval": {
+      const iRule = rule as IntervalRule;
+      if (!lastGeneratedFor) {
+        const d = new Date(now);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + iRule.every);
+        return d;
+      }
+      const parsed = parseDateStr(lastGeneratedFor);
+      if (!parsed) {
+        const d = new Date(now);
+        d.setDate(d.getDate() + iRule.every);
+        return d;
+      }
+      parsed.setDate(parsed.getDate() + iRule.every);
+      return parsed;
+    }
+  }
 }
 
 /**
- * 生成任务数据（不包含 id，由调用方生成）
+ * 计算新建模板时的初始 nextGenerateAt。
+ * nextGenerateAt = 首个事件日期 - leadDays
  */
+export function computeInitialNextGenerateAt(
+  type: RecurringType,
+  rule: RecurringRule,
+  leadDays: number,
+  now = new Date()
+): string {
+  const eventDate = calculateEventDate(type, rule, "", now);
+  return toDateStr(subDays(eventDate, leadDays));
+}
+
+/** 生成任务数据 */
 export interface GeneratedInstance {
   title: string;
   deadline: string;
-  quadrant: import("@/lib/types").Quadrant;
+  quadrant: Quadrant;
   templateId: string;
 }
 
+/** 生成结果：新增实例 + 需要持久化的模板 */
+export interface GenerationResult {
+  instances: GeneratedInstance[];
+  updatedTemplates: RecurringTemplate[];
+}
+
 /**
- * 扫描所有启用的模板，返回应生成的任务列表。
+ * 扫描所有启用的模板，使用 nextGenerateAt 模型生成周期任务实例。
+ * 每个模板每次最多生成 1 条，已错过周期自动跳过不补。
+ * 返回的 updatedTemplates 需要调用方持久化。
  */
 export function generateInstances(
   templates: RecurringTemplate[],
   now = new Date()
-): GeneratedInstance[] {
+): GenerationResult {
   const instances: GeneratedInstance[] = [];
+  const updatedTemplates: RecurringTemplate[] = [];
+  const todayStr = toDateStr(now);
 
   for (const template of templates) {
     if (!template.enabled) continue;
-    const periods = pendingPeriods(template, now);
-    for (const period of periods) {
+
+    let t = { ...template };
+    let changed = false;
+
+    while (new Date(t.nextGenerateAt) <= now) {
+      const eventDate = calculateEventDate(
+        t.type,
+        t.rule,
+        t.lastGeneratedFor,
+        now
+      );
+
+      // 事件日期已在今天之前 → 跳过此周期，不生成 TODO
+      if (toDateStr(eventDate) < todayStr) {
+        t.lastGeneratedFor = formatPeriod(eventDate, t.type);
+        const nextEvent = calculateEventDate(
+          t.type,
+          t.rule,
+          t.lastGeneratedFor,
+          now
+        );
+        t.nextGenerateAt = toDateStr(subDays(nextEvent, t.leadDays));
+        changed = true;
+        continue;
+      }
+
+      // 事件日期在今天或之后 → 生成 TODO
       instances.push({
-        title: template.title,
-        deadline: toLocalDateStr(period),
-        quadrant: template.quadrant,
-        templateId: template.id,
+        title: t.title,
+        deadline: toDateStr(eventDate),
+        quadrant: t.quadrant,
+        templateId: t.id,
       });
+
+      t.lastGeneratedFor = formatPeriod(eventDate, t.type);
+      const nextEvent = calculateEventDate(
+        t.type,
+        t.rule,
+        t.lastGeneratedFor,
+        now
+      );
+      t.nextGenerateAt = toDateStr(subDays(nextEvent, t.leadDays));
+      changed = true;
+      break;
     }
-    // 更新 lastGenerated 为最后一个周期的时间
-    if (periods.length > 0) {
-      const last = periods[periods.length - 1];
-      template.lastGenerated = last.toISOString();
+
+    if (changed) {
+      updatedTemplates.push(t);
     }
   }
 
-  return instances;
+  return { instances, updatedTemplates };
 }
+
+/**
+ * 格式化规则的人类可读标签。
+ */
+export function formatRuleLabel(
+  type: RecurringType,
+  rule: RecurringRule
+): string {
+  switch (type) {
+    case "daily":
+      return "每天";
+    case "weekly": {
+      const w = rule as WeeklyRule;
+      const DAYS = ["日", "一", "二", "三", "四", "五", "六"];
+      return `每周${DAYS[w.dayOfWeek]}`;
+    }
+    case "monthly": {
+      const m = rule as MonthlyRule;
+      return `每月${m.day}号`;
+    }
+    case "yearly": {
+      const y = rule as YearlyRule;
+      return `每年${y.month}月${y.day}日`;
+    }
+    case "interval": {
+      const i = rule as IntervalRule;
+      return `每${i.every}天`;
+    }
+  }
+}
+
+export { DEFAULT_LEAD_DAYS };

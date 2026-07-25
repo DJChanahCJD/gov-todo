@@ -17,7 +17,7 @@ createRoot(document.getElementById("root")!).render(
       >
         <App />
         <Toaster
-          position="top-center"
+          position="bottom-right"
           richColors
           expand
           visibleToasts={3}
