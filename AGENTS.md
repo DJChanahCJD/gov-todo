@@ -7,7 +7,7 @@ Neo-Brutalism（新粗野主义） + Editorial（杂志排版）
 ### 环境要求
 
 - 平台：PC端，统信 UOS
-- 最终预期：点击 HTML 文件，本地直接运行
+- 最终预期：离线环境下能够点击 HTML 文件，本地直接运行
 - 存储：IndexedDB，支持大量任务数据
 - 技术栈：React + ShadcnUI + Vite
 
