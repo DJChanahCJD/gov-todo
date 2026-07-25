@@ -78,10 +78,7 @@ export function ArchiveDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Archive className="h-5 w-5" strokeWidth={2.5} />
-              <span>归档</span>
-              <span className="stamp text-[10px] font-bold border-[3px] border-border px-2 py-0.5 bg-secondary text-secondary-foreground">
-                {String(archived.length).padStart(2, "0")} ENTRIES
-              </span>
+              <span>归档（{archived.length}）</span>
             </DialogTitle>
           </DialogHeader>
 
@@ -108,9 +105,6 @@ export function ArchiveDialog({
                       <h4 className="font-black text-sm uppercase tracking-wide">
                         {label}
                       </h4>
-                      <span className="stamp text-[10px] text-muted-foreground">
-                        {items.length} ITEMS
-                      </span>
                     </div>
                     <div className="space-y-1.5">
                       {items.map((task) => (
@@ -118,21 +112,6 @@ export function ArchiveDialog({
                           key={task.id}
                           className="group flex items-center gap-2 border-[3px] border-border bg-card p-2"
                         >
-                          <span className="w-5 h-5 flex items-center justify-center border-[3px] border-border bg-secondary text-primary shrink-0">
-                            <svg
-                              className="h-3 w-3"
-                              viewBox="0 0 12 12"
-                              fill="none"
-                            >
-                              <path
-                                d="M2.5 6L5 8.5L9.5 3.5"
-                                stroke="currentColor"
-                                strokeWidth="2.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </span>
                           <span className="flex-1 min-w-0 text-sm text-muted-foreground truncate">
                             {task.title}
                           </span>

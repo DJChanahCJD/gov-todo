@@ -76,6 +76,14 @@ export const DEFAULT_LEAD_DAYS: Record<RecurringType, number> = {
   interval: 0,
 };
 
+/** 导入/导出的完整数据格式 */
+export interface ExportData {
+  version: number;
+  exportedAt: string;
+  tasks: Task[];
+  templates: RecurringTemplate[];
+}
+
 /** 象限标签映射 */
 export const QUADRANT_LABELS: Record<
   Quadrant,

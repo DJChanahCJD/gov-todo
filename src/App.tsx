@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
-import { Repeat, Archive as ArchiveIcon, Plus } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { Repeat, Archive as ArchiveIcon, Plus, Download } from "lucide-react";
 import { QuadrantGrid } from "@/components/QuadrantGrid";
 import { AddTaskDialog } from "@/components/AddTaskDialog";
 import { ArchiveDialog } from "@/components/ArchiveDialog";
@@ -7,7 +7,15 @@ import { TemplateDialog } from "@/components/TemplateDialog";
 import { useTaskStore } from "@/stores/task-store";
 import { useTemplateStore } from "@/stores/template-store";
 import { generateInstances } from "@/lib/utils/recurring";
+import { exportData, importData } from "@/lib/utils/import-export";
 import { putTemplate } from "@/lib/db/db";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import type { Task, Quadrant } from "@/lib/types";
 
 /** 应用入口 */
@@ -20,6 +28,8 @@ export default function App() {
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadTasks();
@@ -72,6 +82,47 @@ export default function App() {
     if (!open) setEditTask(null);
   }, []);
 
+  /** 导出数据 */
+  const handleExport = useCallback(() => {
+    const currentTasks = useTaskStore.getState().tasks;
+    const currentTemplates = useTemplateStore.getState().templates;
+    exportData(currentTasks, currentTemplates);
+    toast.success("数据已导出");
+  }, []);
+
+  /** 导入数据 */
+  const handleImport = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  /** 处理导入文件选择 */
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const result = await importData(text);
+        await loadTasks();
+        await loadTemplates();
+        toast.success(
+          `导入完成：${result.tasks} 条任务，${result.templates} 条模板`
+        );
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "导入失败，请检查文件"
+        );
+      }
+
+      // 重置 input，允许重复导入同一文件
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    [loadTasks, loadTemplates]
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6">
@@ -87,7 +138,7 @@ export default function App() {
       {/* 极简顶栏 */}
       <header className="flex items-center justify-between h-12 px-3 border-b-[3px] border-border shrink-0">
         <button className="editorial-numeral text-base font-black uppercase tracking-tight">
-          Eisenhower Matrix
+          TODO
         </button>
         <div className="flex items-center gap-1.5">
           <button
@@ -106,6 +157,29 @@ export default function App() {
           >
             <Repeat className="h-4 w-4" strokeWidth={2.5} />
           </button>
+          {/* 导入/导出 */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                title="数据"
+                aria-label="数据导入导出"
+                className="h-8 w-8 flex items-center justify-center border-[3px] border-border bg-background hover:bg-secondary hover:text-secondary-foreground"
+              >
+                <Download className="h-4 w-4" strokeWidth={2.5} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="border-[3px] border-border"
+            >
+              <DropdownMenuItem onClick={handleExport}>
+                导出数据
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleImport}>
+                导入数据
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button
             onClick={() => openAdd(1)}
             title="新建任务"
@@ -143,6 +217,15 @@ export default function App() {
       />
 
       <TemplateDialog open={templateOpen} onOpenChange={setTemplateOpen} />
+
+      {/* 隐藏文件选择器，用于导入 */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={handleFileChange}
+      />
     </div>
   );
 }
