@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { Task, Quadrant } from "@/lib/types";
 import * as db from "@/lib/db/db";
 import { toast } from "sonner";
+import { isToday, parseISO } from "date-fns";
 
 interface TaskState {
   /** 所有任务（活跃 + 已归档），内存缓存 */
@@ -33,6 +34,9 @@ interface TaskState {
 
   /** 完成任务（设置 completedAt，标记为已归档） */
   complete: (id: string) => Promise<void>;
+
+  /** 切换完成态：完成或恢复 */
+  toggleComplete: (id: string) => Promise<void>;
 
   /** 删除已归档任务 */
   remove: (id: string) => Promise<void>;
@@ -124,6 +128,20 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
     toast.success("任务已完成，已归档");
   },
 
+  toggleComplete: async (id) => {
+    const tasks = get().tasks;
+    const idx = tasks.findIndex((t) => t.id === id);
+    if (idx === -1) return;
+    const current = tasks[idx];
+    const updated: Task = {
+      ...current,
+      completedAt: current.completedAt ? undefined : new Date().toISOString(),
+    };
+    await db.putTask(updated);
+    set({ tasks: tasks.map((t) => (t.id === id ? updated : t)) });
+    toast.success(current.completedAt ? "任务已恢复" : "任务已完成，已归档");
+  },
+
   remove: async (id) => {
     await db.deleteTask(id);
     set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) }));
@@ -137,8 +155,16 @@ export function selectActiveByQuadrant(
   quadrant: Quadrant
 ): Task[] {
   return tasks
-    .filter((t) => t.quadrant === quadrant && !t.completedAt)
+    .filter(
+      (t) =>
+        t.quadrant === quadrant &&
+        (!t.completedAt || isToday(parseISO(t.completedAt)))
+    )
     .sort((a, b) => {
+      const aDone = a.completedAt ? 1 : 0;
+      const bDone = b.completedAt ? 1 : 0;
+      if (aDone !== bDone) return aDone - bDone;
+      if (aDone) return b.completedAt!.localeCompare(a.completedAt!);
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return byDeadline(a, b);
     });

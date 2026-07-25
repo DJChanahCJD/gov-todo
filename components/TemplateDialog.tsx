@@ -139,7 +139,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                     {templates.map((t) => (
                       <div
                         key={t.id}
-                        className="flex items-center gap-3 rounded-md border p-3 hover:bg-muted/50 transition-colors"
+                        className="flex items-center gap-3 border-[3px] border-border bg-card p-3 hover:bg-secondary/60 transition-colors"
                       >
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">
@@ -163,13 +163,13 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                         />
                         <button
                           onClick={() => openEdit(t)}
-                          className="h-7 w-7 rounded flex items-center justify-center hover:bg-muted transition-colors"
+                          className="h-7 w-7 flex items-center justify-center border-[3px] border-border bg-background hover:bg-secondary transition-colors"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => remove(t.id)}
-                          className="h-7 w-7 rounded flex items-center justify-center hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          className="h-7 w-7 flex items-center justify-center border-[3px] border-border bg-background text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -179,7 +179,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                 )}
                 <Button
                   onClick={resetForm}
-                  className="w-full"
+                  className="w-full neo-press"
                   variant="outline"
                 >
                   <Plus className="h-4 w-4" />
@@ -248,9 +248,9 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                           string,
                           { title: string; subtitle: string },
                         ][]
-                      ).map(([key, { title, subtitle }]) => (
+                      ).map(([key, { title }]) => (
                         <SelectItem key={key} value={key}>
-                          {title} - {subtitle}
+                          {title}
                         </SelectItem>
                       ))}
                     </SelectContent>

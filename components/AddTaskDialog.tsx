@@ -124,9 +124,9 @@ export function AddTaskDialog({
                       string,
                       { title: string; subtitle: string },
                     ][]
-                  ).map(([key, { title, subtitle }]) => (
+                  ).map(([key, { title }]) => (
                     <SelectItem key={key} value={key}>
-                      {title} - {subtitle}
+                      {title}
                     </SelectItem>
                   ))}
                 </SelectContent>

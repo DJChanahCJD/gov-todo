@@ -6,12 +6,52 @@ import { selectActiveByQuadrant, useTaskStore } from "@/stores/task-store";
 import { TaskItem } from "@/components/TaskItem";
 import { cn } from "@/lib/utils";
 
-/** 象限 → 章号（依网格展示顺序：左上→右上→左下→右下） */
-const SECTION_NUMERAL: Record<Quadrant, string> = {
-  0: "I",
-  2: "II",
-  1: "III",
-  3: "IV",
+/** 象限视觉配置 */
+const QUADRANT_CONFIG: Record<
+  Quadrant,
+  {
+    numeral: string;
+    cardBg: string;
+    headerBg: string;
+    titleColor: string;
+    bodyOpacity: string;
+    itemBg: string;
+    badge?: string;
+  }
+> = {
+  0: {
+    numeral: "I",
+    cardBg: "bg-background",
+    headerBg: "",
+    titleColor: "text-foreground",
+    bodyOpacity: "",
+    itemBg: "bg-card",
+    badge: "bg-destructive text-destructive-foreground",
+  },
+  1: {
+    numeral: "II",
+    cardBg: "bg-secondary",
+    headerBg: "",
+    titleColor: "text-secondary-foreground",
+    bodyOpacity: "",
+    itemBg: "bg-background",
+  },
+  2: {
+    numeral: "III",
+    cardBg: "bg-muted quadrant-bg-1",
+    headerBg: "",
+    titleColor: "text-foreground",
+    bodyOpacity: "",
+    itemBg: "bg-card",
+  },
+  3: {
+    numeral: "IV",
+    cardBg: "bg-muted/60",
+    headerBg: "",
+    titleColor: "text-muted-foreground",
+    bodyOpacity: "opacity-60",
+    itemBg: "bg-card",
+  },
 };
 
 interface QuadrantCardProps {
@@ -32,107 +72,89 @@ export function QuadrantCard({
 }: QuadrantCardProps) {
   const { moveQuadrant } = useTaskStore();
   const [dragOver, setDragOver] = useState(false);
-
-  const { title, subtitle } = QUADRANT_LABELS[quadrant];
-
+  const cfg = QUADRANT_CONFIG[quadrant];
+  const { title } = QUADRANT_LABELS[quadrant];
   const activeTasks = selectActiveByQuadrant(tasks, quadrant);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(true);
   }, []);
-
-  const handleDragLeave = useCallback(() => {
-    setDragOver(false);
-  }, []);
-
+  const handleDragLeave = useCallback(() => setDragOver(false), []);
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragOver(false);
       const taskId = e.dataTransfer.getData("text/plain");
-      if (taskId) {
-        moveQuadrant(taskId, quadrant);
-      }
+      if (taskId) moveQuadrant(taskId, quadrant);
     },
     [moveQuadrant, quadrant]
   );
 
   return (
-    <div
+    <section
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={cn(
-        "relative flex flex-col border-2 border-foreground bg-card p-5 min-h-[260px]",
-        "shadow-brutal transition-all duration-150 overflow-hidden",
-        "hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brutal-lg",
-        dragOver &&
-          "translate-x-[-2px] translate-y-[-2px] shadow-brutal-lg border-stamp-red"
+        "relative flex flex-col h-full min-h-0 gap-2 p-3 border-[3px] border-border overflow-hidden transition-all duration-150",
+        cfg.cardBg,
+        dragOver && "ring-2 ring-secondary"
       )}
     >
-      {/* 巨型章号背景数字 */}
-      <span
-        className="editorial-numeral pointer-events-none select-none absolute -right-2 -top-4 text-[9rem] text-foreground/[0.06] dark:text-foreground/[0.05]"
-        aria-hidden
-      >
-        {SECTION_NUMERAL[quadrant]}
-      </span>
-
-      {/* 标题栏 */}
-      <div className="relative flex items-start justify-between gap-3 mb-4 pb-3 border-b border-foreground/20">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="editorial-numeral text-xs text-stamp-red">
-              {SECTION_NUMERAL[quadrant]}
-            </span>
-            <span className="stamp text-[10px] text-muted-foreground">
-              § CHAPTER
-            </span>
-          </div>
-          <h3 className="font-display text-lg leading-none tracking-tight truncate">
+      {/* 标题栏：罗马序号 + 英文短标题 + 加号 */}
+      <header className="flex items-center justify-between border-b-[3px] border-border pb-2">
+        <div className="flex items-baseline gap-2.5">
+          <span className="editorial-numeral text-base text-muted-foreground">
+            {cfg.numeral}
+          </span>
+          <h3
+            className={cn(
+              "font-display text-lg font-black uppercase tracking-tight leading-none",
+              cfg.titleColor
+            )}
+          >
             {title}
           </h3>
-          <p className="serif-italic text-xs text-muted-foreground mt-1">
-            {subtitle}
-          </p>
+          {cfg.badge && (
+            <span
+              className={cn(
+                "h-6 w-6 flex items-center justify-center font-black text-sm",
+                cfg.badge
+              )}
+            >
+              !
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="editorial-numeral text-2xl text-foreground tabular-nums">
-            {String(activeTasks.length).padStart(2, "0")}
-          </span>
-          <button
-            onClick={onAdd}
-            className="h-7 w-7 flex items-center justify-center border-2 border-foreground shadow-brutal-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none bg-background hover:bg-foreground hover:text-background transition-all"
-            title="添加任务"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+        <button
+          onClick={onAdd}
+          aria-label="Add task"
+          className="h-7 w-7 flex items-center justify-center border-[3px] border-border bg-background neo-press"
+        >
+          <Plus className="h-4 w-4" strokeWidth={3} />
+        </button>
+      </header>
 
       {/* 任务列表 */}
-      <div className="relative flex-1 space-y-2">
-        {activeTasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6 text-center gap-1.5">
-            <div className="editorial-numeral text-3xl text-foreground/15">
-              —
-            </div>
-            <p className="serif-italic text-xs text-muted-foreground/60">
-              尚无丁务 可审
-            </p>
-          </div>
-        ) : (
-          activeTasks.map((task) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              onEdit={onEdit}
-              onDragStart={onDragStart}
-            />
-          ))
+      <div
+        className={cn(
+          "flex-1 min-h-0 flex flex-col gap-1.5 overflow-y-auto neo-scroll pr-0.5",
+          cfg.bodyOpacity
         )}
+      >
+        {activeTasks.length === 0
+          ? null
+          : activeTasks.map((task) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                onEdit={onEdit}
+                onDragStart={onDragStart}
+                itemBg={cfg.itemBg}
+              />
+            ))}
       </div>
-    </div>
+    </section>
   );
 }

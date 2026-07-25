@@ -11,8 +11,8 @@ createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <ThemeProvider
         attribute="class"
-        defaultTheme="dark"
-        enableSystem
+        defaultTheme="light"
+        forcedTheme="light"
         disableTransitionOnChange
       >
         <App />

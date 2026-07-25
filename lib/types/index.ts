@@ -37,10 +37,10 @@ export const QUADRANT_LABELS: Record<
   Quadrant,
   { title: string; subtitle: string }
 > = {
-  0: { title: "重要且紧急", subtitle: "立即处理" },
-  1: { title: "重要不紧急", subtitle: "计划安排" },
-  2: { title: "不重要紧急", subtitle: "委派他人" },
-  3: { title: "不重要不紧急", subtitle: "尽量少做" },
+  0: { title: "Do", subtitle: "重要且紧急" },
+  1: { title: "Schedule", subtitle: "重要但不紧急" },
+  2: { title: "Delegate", subtitle: "紧急但不重要" },
+  3: { title: "Delete", subtitle: "不紧急且不重要" },
 };
 
 /** 预设 cron 表达式映射 */
