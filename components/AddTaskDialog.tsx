@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { isValid, parseISO } from "date-fns";
+import { Flame, Calendar, Users, Parasol } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,16 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { Task, Quadrant } from "@/lib/types";
 import { QUADRANT_LABELS } from "@/lib/types";
 import { useTaskStore } from "@/stores/task-store";
+import { cn } from "@/lib/utils";
 
 interface AddTaskDialogProps {
   open: boolean;
@@ -29,6 +24,24 @@ interface AddTaskDialogProps {
   /** 预设象限（新建时） */
   defaultQuadrant?: Quadrant;
 }
+
+/** 象限视觉配置 */
+const QUADRANT_CONFIG: Record<
+  Quadrant,
+  {
+    icon: React.ComponentType<{
+      className?: string;
+      style?: React.CSSProperties;
+      strokeWidth?: number;
+    }>;
+    accentColor: string;
+  }
+> = {
+  0: { icon: Flame, accentColor: "#ef4444" },
+  1: { icon: Calendar, accentColor: "#22c55e" },
+  2: { icon: Users, accentColor: "#3b82f6" },
+  3: { icon: Parasol, accentColor: "#9ca3af" },
+};
 
 /** 新建/编辑任务弹窗 */
 export function AddTaskDialog({
@@ -89,6 +102,7 @@ export function AddTaskDialog({
         await update(editTask!.id, {
           title: trimmed,
           deadline: deadline || null,
+          quadrant,
           description: description.trim() || null,
         });
       } else {
@@ -152,31 +166,52 @@ export function AddTaskDialog({
               <p className="text-xs text-destructive mt-1">{deadlineError}</p>
             )}
           </div>
-          {!isEdit && (
-            <div className="space-y-2">
-              <Label>象限</Label>
-              <Select
-                value={String(quadrant)}
-                onValueChange={(v) => setQuadrant(Number(v) as Quadrant)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(
-                    Object.entries(QUADRANT_LABELS) as [
-                      string,
-                      { title: string; subtitle: string },
-                    ][]
-                  ).map(([key, { title }]) => (
-                    <SelectItem key={key} value={key}>
-                      {title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-2">
+            <Label>象限</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {([0, 1, 2, 3] as Quadrant[]).map((q) => {
+                const cfg = QUADRANT_CONFIG[q];
+                const { title, subtitle } = QUADRANT_LABELS[q];
+                const Icon = cfg.icon;
+                const isSelected = quadrant === q;
+                return (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => setQuadrant(q)}
+                    className={cn(
+                      "flex items-center gap-2 p-2 border-[3px] transition-all",
+                      isSelected
+                        ? "shadow-brutal-sm"
+                        : "border-border bg-card hover:bg-muted"
+                    )}
+                    style={
+                      isSelected
+                        ? {
+                            borderColor: cfg.accentColor,
+                            backgroundColor: `${cfg.accentColor}15`,
+                          }
+                        : undefined
+                    }
+                  >
+                    <Icon
+                      className="h-4 w-4 shrink-0"
+                      style={{ color: cfg.accentColor }}
+                      strokeWidth={2.5}
+                    />
+                    <div className="flex flex-col items-start text-left">
+                      <span className="font-bold text-sm uppercase leading-tight">
+                        {title}
+                      </span>
+                      <span className="text-xs text-muted-foreground leading-tight">
+                        {subtitle}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-          )}
+          </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               取消

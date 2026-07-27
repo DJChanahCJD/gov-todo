@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/check-css-compat.mjs",
     "preview": "vite preview",
     "pages:dev": "wrangler pages dev dist",
     "lint": "eslint .",
@@ -84,6 +84,9 @@
     "vite-plugin-singlefile": "^2.3.3",
     "wrangler": "^4.24.0"
   },
+  "browserslist": [
+    "Chrome 87"
+  ],
   "optionalDependencies": {
     "@tailwindcss/oxide-linux-x64-gnu": "4.1.18",
     "@tailwindcss/oxide-win32-x64-msvc": "4.1.18",

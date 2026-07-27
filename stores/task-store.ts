@@ -21,12 +21,13 @@ interface TaskState {
     description?: string;
   }) => Promise<Task>;
 
-  /** 更新任务标题或截止时间 */
+  /** 更新任务标题、截止时间或象限 */
   update: (
     id: string,
     data: {
       title?: string;
       deadline?: string | null;
+      quadrant?: Quadrant;
       description?: string | null;
     }
   ) => Promise<void>;
@@ -99,6 +100,7 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
     if (data.title !== undefined) updated.title = data.title;
     if (data.deadline !== undefined)
       updated.deadline = data.deadline ?? undefined;
+    if (data.quadrant !== undefined) updated.quadrant = data.quadrant;
     if (data.description !== undefined)
       updated.description = data.description ?? undefined;
     await db.putTask(updated);

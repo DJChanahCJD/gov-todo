@@ -17,6 +17,14 @@ export default defineConfig({
     },
   },
   base: "./",
+  css: {
+    transformer: "lightningcss",
+    lightningcss: {
+      targets: {
+        chrome: 8700, // 统信 UOS 浏览器基于 Chromium 87+
+      },
+    },
+  },
   build: {
     target: "es2018",
     cssCodeSplit: false,

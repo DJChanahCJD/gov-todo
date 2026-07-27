@@ -155,8 +155,8 @@ export function TaskItem({
           className={cn(
             "h-7 w-7 flex items-center justify-center border-[3px] border-border transition-colors",
             task.pinned
-              ? "bg-secondary text-primary"
-              : "bg-background text-muted-foreground hover:bg-secondary hover:text-primary"
+              ? "bg-secondary text-primary-foreground"
+              : "bg-background text-muted-foreground hover:bg-secondary hover:text-primary-foreground"
           )}
         >
           {task.pinned ? (
