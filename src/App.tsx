@@ -137,9 +137,9 @@ export default function App() {
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
       {/* 极简顶栏 */}
       <header className="flex items-center justify-between h-12 px-3 border-b-[3px] border-border shrink-0">
-        <button className="editorial-numeral text-base font-black uppercase tracking-tight">
-          Workspace
-        </button>
+        <span className="editorial-numeral text-lg font-black uppercase tracking-tight">
+          工作清单
+        </span>
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setArchiveOpen(true)}
