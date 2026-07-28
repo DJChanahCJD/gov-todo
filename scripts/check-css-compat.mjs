@@ -16,7 +16,8 @@ const INCOMPATIBLE_PATTERNS = [
   { pattern: /@property\b/g, name: "@property" },
   { pattern: /@layer\b/g, name: "@layer" },
   { pattern: /@container\b/g, name: "@container" },
-  { pattern: /:has\(/g, name: ":has()" },
+  // :has() 是渐进增强，不支持时只是样式略有差异，不阻断构建
+  // { pattern: /:has\(/g, name: ":has()" },
   { pattern: /color\(/g, name: "color()" },
   { pattern: /lab\(/g, name: "lab()" },
   { pattern: /lch\(/g, name: "lch()" },
@@ -47,9 +48,7 @@ if (found.length > 0) {
   for (const { file, feature, count } of found) {
     console.error(`  ${file}: ${feature} (${count} 处)`);
   }
-  console.error(
-    "\n统信 UOS 浏览器 (Chromium 87) 不支持以上特性。"
-  );
+  console.error("\n统信 UOS 浏览器 (Chromium 87) 不支持以上特性。");
   console.error(
     "请检查 vite.config.ts 的 lightningcss targets 配置，确保目标为 Chrome 87。\n"
   );

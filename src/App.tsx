@@ -138,7 +138,7 @@ export default function App() {
       {/* 极简顶栏 */}
       <header className="flex items-center justify-between h-12 px-3 border-b-[3px] border-border shrink-0">
         <button className="editorial-numeral text-base font-black uppercase tracking-tight">
-          TODO
+          Workspace
         </button>
         <div className="flex items-center gap-1.5">
           <button

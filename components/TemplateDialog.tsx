@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -259,11 +260,12 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="tpl-desc">描述（可选）</Label>
-                  <Input
+                  <Textarea
                     id="tpl-desc"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="补充说明"
+                    rows={3}
                   />
                 </div>
 
