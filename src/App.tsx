@@ -1,9 +1,16 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Repeat, Archive as ArchiveIcon, Plus, Download } from "lucide-react";
+import {
+  Repeat,
+  Archive as ArchiveIcon,
+  Plus,
+  Download,
+  Wrench,
+} from "lucide-react";
 import { QuadrantGrid } from "@/components/QuadrantGrid";
 import { AddTaskDialog } from "@/components/AddTaskDialog";
 import { ArchiveDialog } from "@/components/ArchiveDialog";
 import { TemplateDialog } from "@/components/TemplateDialog";
+import { ToolkitDialog } from "@/components/ToolkitDialog";
 import { useTaskStore } from "@/stores/task-store";
 import { useTemplateStore } from "@/stores/template-store";
 import { generateInstances } from "@/lib/utils/recurring";
@@ -28,6 +35,7 @@ export default function App() {
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [toolkitOpen, setToolkitOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -181,6 +189,14 @@ export default function App() {
             </DropdownMenuContent>
           </DropdownMenu>
           <button
+            onClick={() => setToolkitOpen(true)}
+            title="工具箱"
+            aria-label="工具箱"
+            className="h-8 w-8 flex items-center justify-center border-[3px] border-border bg-background text-foreground hover:bg-secondary hover:text-secondary-foreground"
+          >
+            <Wrench className="h-4 w-4" strokeWidth={2.5} />
+          </button>
+          <button
             onClick={() => openAdd(1)}
             title="新建任务"
             aria-label="新建任务"
@@ -217,6 +233,8 @@ export default function App() {
       />
 
       <TemplateDialog open={templateOpen} onOpenChange={setTemplateOpen} />
+
+      <ToolkitDialog open={toolkitOpen} onOpenChange={setToolkitOpen} />
 
       {/* 隐藏文件选择器，用于导入 */}
       <input

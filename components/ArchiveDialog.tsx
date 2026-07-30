@@ -83,13 +83,13 @@ export function ArchiveDialog({
           </DialogHeader>
 
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="搜索归档任务…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
             />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
           </div>
 
           <ScrollArea className="flex-1 min-h-0">

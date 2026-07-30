@@ -48,10 +48,6 @@
     border-color: var(--border);
     outline-color: var(--ring);
   }
-  ::selection {
-    background: var(--foreground);
-    color: var(--background);
-  }
   html {
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
