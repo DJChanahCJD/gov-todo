@@ -6,7 +6,10 @@ Neo-Brutalism（新粗野主义） + Editorial（杂志排版）
 
 ### 环境要求
 
-- 平台：PC端，统信 UOS
+- 运行环境：统信 UOS | Python 3.7
+- 本地调试环境：Windows
+- 体制内离线内网本地运行
+- Chromium 83，JavaScript V8
 - 最终预期：离线环境下能够点击 HTML 文件，本地直接运行
 - 存储：IndexedDB，支持大量任务数据
 - 技术栈：React + ShadcnUI + Vite

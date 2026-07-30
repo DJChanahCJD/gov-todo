@@ -194,14 +194,14 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                     {templates.map((t) => (
                       <div
                         key={t.id}
-                        className="flex items-center gap-3 border-[3px] border-border bg-card p-3 hover:bg-secondary/60 transition-colors"
+                        className="flex items-center space-x-3 border-[3px] border-border bg-card p-3 hover:bg-secondary/60 transition-colors"
                       >
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">
                             {t.title}
                           </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <div className="flex items-center space-x-2 mt-0.5">
+                            <span className="text-xs text-muted-foreground flex items-center space-x-1">
                               <Clock className="h-3 w-3" />
                               {formatRuleLabel(t.type, t.rule)}
                             </span>
@@ -272,7 +272,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                 {/* 周期类型选择 */}
                 <div className="space-y-2">
                   <Label>周期</Label>
-                  <div className="flex gap-1.5 flex-wrap">
+                  <div className="flex space-x-1.5 flex-wrap">
                     {TYPES.map(({ value, label }) => (
                       <Button
                         key={value}
@@ -295,7 +295,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                     </p>
                   )}
                   {type === "weekly" && (
-                    <div className="flex gap-1.5">
+                    <div className="flex space-x-1.5">
                       {WEEK_DAYS.map((label, i) => (
                         <button
                           key={i}
@@ -312,7 +312,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                     </div>
                   )}
                   {type === "monthly" && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center space-x-2">
                       <span className="text-sm text-muted-foreground">
                         每月
                       </span>
@@ -335,7 +335,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                     </div>
                   )}
                   {type === "yearly" && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center space-x-2">
                       <Input
                         type="number"
                         min={1}
@@ -371,7 +371,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                     </div>
                   )}
                   {type === "interval" && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center space-x-2">
                       <span className="text-sm text-muted-foreground">每</span>
                       <Input
                         type="number"
@@ -396,7 +396,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                 {/* 提前天数 */}
                 <div className="space-y-2">
                   <Label htmlFor="tpl-lead">提前出现在 TODO</Label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center space-x-2">
                     <Input
                       id="tpl-lead"
                       type="number"
@@ -442,7 +442,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                   </Select>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex justify-end space-x-2 pt-2">
                   <Button variant="outline" onClick={() => setShowForm(false)}>
                     取消
                   </Button>

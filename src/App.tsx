@@ -140,7 +140,7 @@ export default function App() {
         <span className="editorial-numeral text-lg font-black uppercase tracking-tight">
           工作清单
         </span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center space-x-1.5">
           <button
             onClick={() => setArchiveOpen(true)}
             title="归档"
@@ -184,7 +184,7 @@ export default function App() {
             onClick={() => openAdd(1)}
             title="新建任务"
             aria-label="新建任务"
-            className="h-8 px-3 flex items-center gap-1.5 border-[3px] border-border bg-foreground text-background font-black uppercase text-xs tracking-wide hover:bg-secondary hover:text-secondary-foreground"
+            className="h-8 px-3 flex items-center space-x-1.5 border-[3px] border-border bg-foreground text-background font-black uppercase text-xs tracking-wide hover:bg-secondary hover:text-secondary-foreground"
           >
             <Plus className="h-4 w-4" strokeWidth={3} />
             New

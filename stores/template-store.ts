@@ -8,6 +8,7 @@ import type {
 import { DEFAULT_LEAD_DAYS } from "@/lib/types";
 import * as db from "@/lib/db/db";
 import { toast } from "sonner";
+import { uid } from "@/lib/utils";
 import { computeInitialNextGenerateAt } from "@/lib/utils/recurring";
 
 interface TemplateAddData {
@@ -39,10 +40,6 @@ interface TemplateState {
   add: (data: TemplateAddData) => Promise<RecurringTemplate>;
   update: (id: string, data: TemplateUpdateData) => Promise<void>;
   remove: (id: string) => Promise<void>;
-}
-
-function uid(): string {
-  return crypto.randomUUID();
 }
 
 export const useTemplateStore = create<TemplateState>()((set, get) => ({

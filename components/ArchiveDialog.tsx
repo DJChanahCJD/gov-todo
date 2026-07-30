@@ -76,7 +76,7 @@ export function ArchiveDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center space-x-2">
               <Archive className="h-5 w-5" strokeWidth={2.5} />
               <span>归档（{archived.length}）</span>
             </DialogTitle>
@@ -101,7 +101,7 @@ export function ArchiveDialog({
               <div className="space-y-4">
                 {Array.from(groups.entries()).map(([label, items]) => (
                   <div key={label}>
-                    <div className="flex items-center gap-3 mb-2 pb-1 border-b-[3px] border-border">
+                    <div className="flex items-center space-x-3 mb-2 pb-1 border-b-[3px] border-border">
                       <h4 className="font-black text-sm uppercase tracking-wide">
                         {label}
                       </h4>
@@ -110,7 +110,7 @@ export function ArchiveDialog({
                       {items.map((task) => (
                         <div
                           key={task.id}
-                          className="group flex items-center gap-2 border-[3px] border-border bg-card p-2"
+                          className="group flex items-center space-x-2 border-[3px] border-border bg-card p-2"
                         >
                           <span className="flex-1 min-w-0 text-sm text-muted-foreground truncate">
                             {task.title}

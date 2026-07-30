@@ -104,7 +104,7 @@ export function QuadrantCard({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={cn(
-        "relative flex flex-col h-full min-h-0 gap-2 p-3 border-[3px] border-border overflow-hidden transition-all duration-150",
+        "relative flex flex-col h-full min-h-0 space-y-2 p-3 border-[3px] border-border overflow-hidden transition-all duration-150",
         cfg.cardBg,
         dragOver && "ring-2 ring-secondary"
       )}
@@ -112,7 +112,7 @@ export function QuadrantCard({
     >
       {/* 标题栏：图标 + 英文短标题 + 加号 */}
       <header className="flex items-center justify-between border-b-[3px] border-border pb-2">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center space-x-2.5">
           <cfg.icon
             className="h-5 w-5"
             style={{ color: cfg.accentColor }}
@@ -143,7 +143,7 @@ export function QuadrantCard({
       {/* 任务列表 */}
       <div
         className={cn(
-          "flex-1 min-h-0 flex flex-col gap-1.5 overflow-y-auto neo-scroll pr-0.5",
+          "flex-1 min-h-0 flex flex-col space-y-1.5 overflow-y-auto neo-scroll pr-0.5",
           cfg.bodyOpacity
         )}
       >

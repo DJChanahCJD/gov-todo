@@ -152,3 +152,8 @@ export async function processBatchCPU<T>(
 export function openExternalLink(url: string): void {
   window.open(url, "_blank", "noopener,noreferrer");
 }
+
+/** 生成唯一 ID（时间戳 + 随机数） */
+export function uid(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
+}

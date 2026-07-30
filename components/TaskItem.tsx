@@ -69,7 +69,7 @@ export function TaskItem({
       onDragStart={handleDragStart}
       onClick={() => onEdit(task)}
       className={cn(
-        "group flex items-center justify-between w-full gap-2 border-[3px] border-border p-2 cursor-pointer transition-colors",
+        "group flex items-center justify-between w-full space-x-2 border-[3px] border-border p-2 cursor-pointer transition-colors",
         itemBg,
         "hover:text-secondary-foreground hover-accent",
         task.pinned && "ring-2 ring-secondary ring-offset-[-3px]",
@@ -84,7 +84,7 @@ export function TaskItem({
       }
     >
       {/* 左：勾选 + 标题 */}
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="flex items-center space-x-2 min-w-0 flex-1">
         <button
           title={doneToday ? "取消完成" : "标记完成"}
           aria-hidden
@@ -125,11 +125,11 @@ export function TaskItem({
       </div>
 
       {/* 右：截止 + 操作 */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex items-center space-x-1.5 shrink-0">
         {deadlineInfo && (
           <span
             className={cn(
-              "flex items-center gap-1 px-1.5 py-0.5 border-[3px] border-border text-[10px] font-black uppercase tracking-wide stamp",
+              "flex items-center space-x-1 px-1.5 py-0.5 border-[3px] border-border text-[10px] font-black uppercase tracking-wide stamp",
               doneToday && "opacity-60",
               deadlineInfo.state === "overdue" &&
                 "bg-destructive text-destructive-foreground",

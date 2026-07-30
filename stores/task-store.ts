@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { Task, Quadrant } from "@/lib/types";
 import * as db from "@/lib/db/db";
 import { toast } from "sonner";
+import { uid } from "@/lib/utils";
 import { isToday, parseISO } from "date-fns";
 
 interface TaskState {
@@ -46,11 +47,6 @@ interface TaskState {
 
   /** 删除已归档任务 */
   remove: (id: string) => Promise<void>;
-}
-
-/** 生成 UUID v4 */
-function uid(): string {
-  return crypto.randomUUID();
 }
 
 /** 按 deadline 排序，undefined 排最后 */

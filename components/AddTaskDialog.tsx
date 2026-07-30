@@ -180,7 +180,7 @@ export function AddTaskDialog({
                     type="button"
                     onClick={() => setQuadrant(q)}
                     className={cn(
-                      "flex items-center gap-2 p-2 border-[3px] transition-all",
+                      "flex items-center space-x-2 p-2 border-[3px] transition-all",
                       isSelected
                         ? "shadow-brutal-sm"
                         : "border-border bg-card hover:bg-muted"
@@ -212,7 +212,7 @@ export function AddTaskDialog({
               })}
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end space-x-2 pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               取消
             </Button>
