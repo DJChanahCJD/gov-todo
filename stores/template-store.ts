@@ -18,6 +18,7 @@ interface TemplateAddData {
   type: RecurringType;
   rule: RecurringRule;
   leadDays?: number;
+  startDate?: string; // 开始日期 YYYY-MM-DD，为空则从今天开始
 }
 
 interface TemplateUpdateData {
@@ -28,6 +29,7 @@ interface TemplateUpdateData {
   rule?: RecurringRule;
   leadDays?: number;
   enabled?: boolean;
+  startDate?: string;
   lastGeneratedFor?: string;
   nextGenerateAt?: string;
 }
@@ -58,6 +60,7 @@ export const useTemplateStore = create<TemplateState>()((set, get) => ({
 
   add: async (data) => {
     const leadDays = data.leadDays ?? DEFAULT_LEAD_DAYS[data.type];
+    const startDate = data.startDate || undefined;
     const template: RecurringTemplate = {
       id: uid(),
       title: data.title,
@@ -66,11 +69,14 @@ export const useTemplateStore = create<TemplateState>()((set, get) => ({
       type: data.type,
       rule: data.rule,
       leadDays,
+      startDate,
       lastGeneratedFor: "",
       nextGenerateAt: computeInitialNextGenerateAt(
         data.type,
         data.rule,
-        leadDays
+        leadDays,
+        new Date(),
+        startDate
       ),
       enabled: true,
     };
@@ -87,7 +93,7 @@ export const useTemplateStore = create<TemplateState>()((set, get) => ({
 
     let updated = { ...templates[idx], ...data };
 
-    // 若 type/rule/leadDays 变化，重新计算 nextGenerateAt
+    // 若 type/rule/leadDays/startDate 变化，重新计算 nextGenerateAt
     const typeChanged =
       data.type !== undefined && data.type !== templates[idx].type;
     const ruleChanged =
@@ -95,13 +101,26 @@ export const useTemplateStore = create<TemplateState>()((set, get) => ({
       JSON.stringify(data.rule) !== JSON.stringify(templates[idx].rule);
     const leadDaysChanged =
       data.leadDays !== undefined && data.leadDays !== templates[idx].leadDays;
+    const startDateChanged =
+      data.startDate !== undefined &&
+      data.startDate !== templates[idx].startDate;
 
-    if (typeChanged || ruleChanged || leadDaysChanged) {
+    if (typeChanged || ruleChanged || leadDaysChanged || startDateChanged) {
       const t = data.type ?? updated.type;
       const r = data.rule ?? updated.rule;
       const ld = data.leadDays ?? updated.leadDays;
+      const sd =
+        data.startDate !== undefined
+          ? data.startDate || undefined
+          : updated.startDate;
       updated.lastGeneratedFor = "";
-      updated.nextGenerateAt = computeInitialNextGenerateAt(t, r, ld);
+      updated.nextGenerateAt = computeInitialNextGenerateAt(
+        t,
+        r,
+        ld,
+        new Date(),
+        sd
+      );
     }
 
     await db.putTemplate(updated);

@@ -9,16 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Pencil, Trash2, Clock } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Clock,
+  Flame,
+  Calendar,
+  Users,
+  Parasol,
+} from "lucide-react";
 import type {
   RecurringTemplate,
   RecurringType,
@@ -32,6 +33,25 @@ import type {
 import { QUADRANT_LABELS, DEFAULT_LEAD_DAYS } from "@/lib/types";
 import { useTemplateStore } from "@/stores/template-store";
 import { formatRuleLabel } from "@/lib/utils/recurring";
+import { cn } from "@/lib/utils";
+
+/** 象限视觉配置 */
+const QUADRANT_CONFIG: Record<
+  Quadrant,
+  {
+    icon: React.ComponentType<{
+      className?: string;
+      style?: React.CSSProperties;
+      strokeWidth?: number;
+    }>;
+    accentColor: string;
+  }
+> = {
+  0: { icon: Flame, accentColor: "#ef4444" },
+  1: { icon: Calendar, accentColor: "#22c55e" },
+  2: { icon: Users, accentColor: "#3b82f6" },
+  3: { icon: Parasol, accentColor: "#9ca3af" },
+};
 
 interface TemplateDialogProps {
   open: boolean;
@@ -60,6 +80,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
   const [description, setDescription] = useState("");
   const [quadrant, setQuadrant] = useState<Quadrant>(1);
   const [type, setType] = useState<RecurringType>("weekly");
+  const [startDate, setStartDate] = useState("");
   const [leadDays, setLeadDays] = useState(DEFAULT_LEAD_DAYS.weekly);
 
   // 各类型规则参数
@@ -102,6 +123,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
     setDescription("");
     setQuadrant(1);
     setType("weekly");
+    setStartDate("");
     setLeadDays(DEFAULT_LEAD_DAYS.weekly);
     setWeeklyDay(1);
     setMonthlyDay(1);
@@ -119,6 +141,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
     setDescription(t.description);
     setQuadrant(t.quadrant);
     setType(t.type);
+    setStartDate(t.startDate ?? "");
     setLeadDays(t.leadDays);
 
     // 回填规则参数
@@ -148,6 +171,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
     setSaving(true);
     try {
       const rule = buildRule();
+      const sd = startDate || undefined;
       if (editingTemplate) {
         await update(editingTemplate.id, {
           title: trimmed,
@@ -156,6 +180,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
           type,
           rule,
           leadDays,
+          startDate: sd,
         });
       } else {
         await add({
@@ -165,6 +190,7 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
           type,
           rule,
           leadDays,
+          startDate: sd,
         });
       }
       setShowForm(false);
@@ -175,16 +201,24 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
+      <DialogContent className="sm:max-w-lg h-[80vh] max-h-[80vh] min-h-0 flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>周期任务模板</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1">
+        <div className="flex-1 min-h-0 overflow-y-auto neo-scroll pr-2">
           <div className="space-y-4 pt-2">
             {/* 模板列表 */}
             {!showForm && (
               <>
+                <Button
+                  onClick={resetForm}
+                  className="w-full neo-press"
+                  variant="outline"
+                >
+                  <Plus className="h-4 w-4" />
+                  新建模板
+                </Button>
                 {templates.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
                     暂无模板，创建一个开始吧
@@ -205,6 +239,11 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                               <Clock className="h-3 w-3" />
                               {formatRuleLabel(t.type, t.rule)}
                             </span>
+                            {t.startDate && (
+                              <span className="text-xs text-muted-foreground">
+                                · 从 {t.startDate} 起
+                              </span>
+                            )}
                             {t.description && (
                               <span className="text-xs text-muted-foreground truncate">
                                 · {t.description}
@@ -234,14 +273,6 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                     ))}
                   </div>
                 )}
-                <Button
-                  onClick={resetForm}
-                  className="w-full neo-press"
-                  variant="outline"
-                >
-                  <Plus className="h-4 w-4" />
-                  新建模板
-                </Button>
               </>
             )}
 
@@ -286,103 +317,153 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                   </div>
                 </div>
 
-                {/* 规则参数 */}
+                {/* 开始日期 */}
                 <div className="space-y-2">
-                  <Label>规则</Label>
-                  {type === "daily" && (
-                    <p className="text-sm text-muted-foreground">
-                      每天生成一条任务
-                    </p>
-                  )}
-                  {type === "weekly" && (
-                    <div className="flex space-x-1.5">
-                      {WEEK_DAYS.map((label, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setWeeklyDay(i)}
-                          className={`h-9 w-9 flex items-center justify-center text-sm border-[3px] border-border transition-colors ${
-                            weeklyDay === i
-                              ? "bg-foreground text-background"
-                              : "bg-background hover:bg-secondary"
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {type === "monthly" && (
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-muted-foreground">
-                        每月
-                      </span>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={28}
-                        value={monthlyDay}
-                        onChange={(e) =>
-                          setMonthlyDay(
-                            Math.max(
-                              1,
-                              Math.min(28, Number(e.target.value) || 1)
+                  <Label htmlFor="tpl-start">开始日期（可选）</Label>
+                  <Input
+                    id="tpl-start"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    不填则从今天开始，填写后从该日期起算第一个周期
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {/* 规则参数 */}
+                  <div className="space-y-2">
+                    <Label>规则</Label>
+                    {type === "daily" && (
+                      <p className="text-sm text-muted-foreground">
+                        每天生成一条任务
+                      </p>
+                    )}
+                    {type === "weekly" && (
+                      <div className="grid grid-cols-7 gap-1.5">
+                        {WEEK_DAYS.map((label, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setWeeklyDay(i)}
+                            className={`h-9 w-full flex items-center justify-center text-sm border-[3px] border-border transition-colors ${
+                              weeklyDay === i
+                                ? "bg-foreground text-background"
+                                : "bg-background hover:bg-secondary"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {type === "monthly" && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-muted-foreground">
+                          每月
+                        </span>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={28}
+                          value={monthlyDay}
+                          onChange={(e) =>
+                            setMonthlyDay(
+                              Math.max(
+                                1,
+                                Math.min(28, Number(e.target.value) || 1)
+                              )
                             )
-                          )
-                        }
-                        className="w-20"
-                      />
-                      <span className="text-sm text-muted-foreground">号</span>
-                    </div>
-                  )}
-                  {type === "yearly" && (
+                          }
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          号
+                        </span>
+                      </div>
+                    )}
+                    {type === "yearly" && (
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={12}
+                          value={yearlyMonth}
+                          onChange={(e) =>
+                            setYearlyMonth(
+                              Math.max(
+                                1,
+                                Math.min(12, Number(e.target.value) || 1)
+                              )
+                            )
+                          }
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          月
+                        </span>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={31}
+                          value={yearlyDay}
+                          onChange={(e) =>
+                            setYearlyDay(
+                              Math.max(
+                                1,
+                                Math.min(31, Number(e.target.value) || 1)
+                              )
+                            )
+                          }
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          日
+                        </span>
+                      </div>
+                    )}
+                    {type === "interval" && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-muted-foreground">
+                          每
+                        </span>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={intervalEvery}
+                          onChange={(e) =>
+                            setIntervalEvery(
+                              Math.max(
+                                1,
+                                Math.min(365, Number(e.target.value) || 1)
+                              )
+                            )
+                          }
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          天
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 提前天数 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="tpl-lead">提前出现在 TODO</Label>
                     <div className="flex items-center space-x-2">
                       <Input
+                        id="tpl-lead"
                         type="number"
-                        min={1}
-                        max={12}
-                        value={yearlyMonth}
-                        onChange={(e) =>
-                          setYearlyMonth(
-                            Math.max(
-                              1,
-                              Math.min(12, Number(e.target.value) || 1)
-                            )
-                          )
-                        }
-                        className="w-20"
-                      />
-                      <span className="text-sm text-muted-foreground">月</span>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={31}
-                        value={yearlyDay}
-                        onChange={(e) =>
-                          setYearlyDay(
-                            Math.max(
-                              1,
-                              Math.min(31, Number(e.target.value) || 1)
-                            )
-                          )
-                        }
-                        className="w-20"
-                      />
-                      <span className="text-sm text-muted-foreground">日</span>
-                    </div>
-                  )}
-                  {type === "interval" && (
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-muted-foreground">每</span>
-                      <Input
-                        type="number"
-                        min={1}
+                        min={0}
                         max={365}
-                        value={intervalEvery}
+                        value={leadDays}
                         onChange={(e) =>
-                          setIntervalEvery(
+                          setLeadDays(
                             Math.max(
-                              1,
-                              Math.min(365, Number(e.target.value) || 1)
+                              0,
+                              Math.min(365, Number(e.target.value) || 0)
                             )
                           )
                         }
@@ -390,73 +471,71 @@ export function TemplateDialog({ open, onOpenChange }: TemplateDialogProps) {
                       />
                       <span className="text-sm text-muted-foreground">天</span>
                     </div>
-                  )}
-                </div>
-
-                {/* 提前天数 */}
-                <div className="space-y-2">
-                  <Label htmlFor="tpl-lead">提前出现在 TODO</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      id="tpl-lead"
-                      type="number"
-                      min={0}
-                      max={365}
-                      value={leadDays}
-                      onChange={(e) =>
-                        setLeadDays(
-                          Math.max(
-                            0,
-                            Math.min(365, Number(e.target.value) || 0)
-                          )
-                        )
-                      }
-                      className="w-20"
-                    />
-                    <span className="text-sm text-muted-foreground">天</span>
                   </div>
                 </div>
 
                 {/* 默认象限 */}
                 <div className="space-y-2">
                   <Label>默认象限</Label>
-                  <Select
-                    value={String(quadrant)}
-                    onValueChange={(v) => setQuadrant(Number(v) as Quadrant)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(
-                        Object.entries(QUADRANT_LABELS) as [
-                          string,
-                          { title: string; subtitle: string },
-                        ][]
-                      ).map(([key, { title }]) => (
-                        <SelectItem key={key} value={key}>
-                          {title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex justify-end space-x-2 pt-2">
-                  <Button variant="outline" onClick={() => setShowForm(false)}>
-                    取消
-                  </Button>
-                  <Button
-                    onClick={handleSave}
-                    disabled={!title.trim() || saving}
-                  >
-                    {saving ? "保存中..." : editingTemplate ? "保存" : "创建"}
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([0, 1, 2, 3] as Quadrant[]).map((q) => {
+                      const cfg = QUADRANT_CONFIG[q];
+                      const { title, subtitle } = QUADRANT_LABELS[q];
+                      const Icon = cfg.icon;
+                      const isSelected = quadrant === q;
+                      return (
+                        <button
+                          key={q}
+                          type="button"
+                          onClick={() => setQuadrant(q)}
+                          className={cn(
+                            "flex items-center space-x-2 p-2 border-[3px] transition-all",
+                            isSelected
+                              ? "shadow-brutal-sm"
+                              : "border-border bg-card hover:bg-muted"
+                          )}
+                          style={
+                            isSelected
+                              ? {
+                                  borderColor: cfg.accentColor,
+                                  backgroundColor: `${cfg.accentColor}15`,
+                                }
+                              : undefined
+                          }
+                        >
+                          <Icon
+                            className="h-4 w-4 shrink-0"
+                            style={{ color: cfg.accentColor }}
+                            strokeWidth={2.5}
+                          />
+                          <div className="flex flex-col items-start text-left">
+                            <span className="font-bold text-sm uppercase leading-tight">
+                              {title}
+                            </span>
+                            <span className="text-xs text-muted-foreground leading-tight">
+                              {subtitle}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
+
+        {showForm && (
+          <div className="flex shrink-0 flex-wrap justify-end gap-2 border-t-[3px] border-border pt-4">
+            <Button variant="outline" onClick={() => setShowForm(false)}>
+              取消
+            </Button>
+            <Button onClick={handleSave} disabled={!title.trim() || saving}>
+              {saving ? "保存中..." : editingTemplate ? "保存" : "创建"}
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

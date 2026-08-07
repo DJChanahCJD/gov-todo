@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Pin, PinOff, Clock } from "lucide-react";
+import { Pin, PinOff, Clock, Trash2 } from "lucide-react";
 import { differenceInCalendarDays, format, isToday, parseISO } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import type { Task } from "@/lib/types";
@@ -8,8 +8,12 @@ import { cn } from "@/lib/utils";
 
 interface TaskItemProps {
   task: Task;
-  onEdit: (task: Task) => void;
-  onDragStart: (e: React.DragEvent, task: Task) => void;
+  onEdit?: (task: Task) => void;
+  onView?: (task: Task) => void;
+  onDragStart?: (e: React.DragEvent, task: Task) => void;
+  onToggleComplete?: (task: Task) => void;
+  onDelete?: (task: Task) => void;
+  archived?: boolean;
   /** 任务条背景（依所在象限而定） */
   itemBg?: string;
   /** 象限强调色 */
@@ -47,33 +51,41 @@ function formatDeadline(deadline: string): {
 export function TaskItem({
   task,
   onEdit,
+  onView,
   onDragStart,
+  onToggleComplete,
+  onDelete,
+  archived = false,
   itemBg = "bg-card",
   accentColor,
 }: TaskItemProps) {
   const { togglePin, toggleComplete } = useTaskStore();
   const doneToday = !!task.completedAt && isToday(parseISO(task.completedAt));
+  const isCompleted = archived ? !!task.completedAt : doneToday;
   const deadlineInfo = task.deadline ? formatDeadline(task.deadline) : null;
 
   const handleDragStart = useCallback(
     (e: React.DragEvent) => {
       e.dataTransfer.setData("text/plain", task.id);
-      onDragStart(e, task);
+      onDragStart?.(e, task);
     },
     [task, onDragStart]
   );
 
   return (
     <div
-      draggable
-      onDragStart={handleDragStart}
-      onClick={() => onEdit(task)}
+      draggable={!!onDragStart}
+      onDragStart={onDragStart ? handleDragStart : undefined}
+      onClick={() => {
+        const onClick = onView ?? onEdit;
+        onClick?.(task);
+      }}
       className={cn(
         "group flex items-center justify-between w-full space-x-2 border-[3px] border-border p-2 cursor-pointer transition-colors",
         itemBg,
         "hover:text-secondary-foreground hover-accent",
         task.pinned && "ring-2 ring-secondary ring-offset-[-3px]",
-        doneToday && "opacity-60"
+        isCompleted && "opacity-60"
       )}
       style={
         accentColor
@@ -86,21 +98,22 @@ export function TaskItem({
       {/* 左：勾选 + 标题 */}
       <div className="flex items-center space-x-2 min-w-0 flex-1">
         <button
-          title={doneToday ? "取消完成" : "标记完成"}
-          aria-hidden
+          title={isCompleted ? "取消完成" : "标记完成"}
+          aria-label={isCompleted ? "取消完成" : "标记完成"}
           type="button"
           role="checkbox"
-          aria-checked={doneToday}
+          aria-checked={isCompleted}
           onClick={(e) => {
             e.stopPropagation();
-            toggleComplete(task.id);
+            if (onToggleComplete) onToggleComplete(task);
+            else toggleComplete(task.id);
           }}
           className={cn(
             "h-5 w-5 shrink-0 flex items-center justify-center border-[3px] border-border transition-colors cursor-pointer",
-            doneToday ? "bg-primary text-primary-foreground" : "bg-card"
+            isCompleted ? "bg-primary text-primary-foreground" : "bg-card"
           )}
         >
-          {doneToday && (
+          {isCompleted && (
             <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
               <path
                 d="M2.5 6L5 8.5L9.5 3.5"
@@ -116,7 +129,7 @@ export function TaskItem({
         <h4
           className={cn(
             "font-bold text-sm truncate flex-1",
-            doneToday && "line-through",
+            isCompleted && "line-through",
             task.pinned && "font-black"
           )}
         >
@@ -130,7 +143,7 @@ export function TaskItem({
           <span
             className={cn(
               "flex items-center space-x-1 px-1.5 py-0.5 border-[3px] border-border text-[10px] font-black uppercase tracking-wide stamp",
-              doneToday && "opacity-60",
+              isCompleted && "opacity-60",
               deadlineInfo.state === "overdue" &&
                 "bg-destructive text-destructive-foreground",
               deadlineInfo.state === "urgent" &&
@@ -145,26 +158,40 @@ export function TaskItem({
           </span>
         )}
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            togglePin(task.id);
-          }}
-          title={task.pinned ? "取消置顶" : "置顶"}
-          aria-label={task.pinned ? "取消置顶" : "置顶"}
-          className={cn(
-            "h-7 w-7 flex items-center justify-center border-[3px] border-border transition-colors",
-            task.pinned
-              ? "bg-secondary text-primary-foreground"
-              : "bg-background text-muted-foreground hover:bg-secondary hover:text-primary-foreground"
-          )}
-        >
-          {task.pinned ? (
-            <Pin className="h-3.5 w-3.5" strokeWidth={2.5} />
-          ) : (
-            <PinOff className="h-3.5 w-3.5" />
-          )}
-        </button>
+        {onDelete ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(task);
+            }}
+            title="删除"
+            aria-label="删除"
+            className="h-7 w-7 flex items-center justify-center border-[3px] border-border bg-background text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        ) : (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePin(task.id);
+            }}
+            title={task.pinned ? "取消置顶" : "置顶"}
+            aria-label={task.pinned ? "取消置顶" : "置顶"}
+            className={cn(
+              "h-7 w-7 flex items-center justify-center border-[3px] border-border transition-colors",
+              task.pinned
+                ? "bg-secondary text-primary-foreground"
+                : "bg-background text-muted-foreground hover:bg-secondary hover:text-primary-foreground"
+            )}
+          >
+            {task.pinned ? (
+              <Pin className="h-3.5 w-3.5" strokeWidth={2.5} />
+            ) : (
+              <PinOff className="h-3.5 w-3.5" />
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

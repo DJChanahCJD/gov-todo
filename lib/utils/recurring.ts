@@ -55,19 +55,23 @@ function formatPeriod(date: Date, type: RecurringType): string {
 
 /**
  * 计算事件日期。
- * 若 lastGeneratedFor 为空，返回从 now 开始的第一个事件日期；
+ * 若 lastGeneratedFor 为空，返回从 anchorDate（或 now）开始的第一个事件日期；
  * 否则返回 lastGeneratedFor 标识的周期之后的下一个事件日期。
+ * @param anchorDate 指定开始日期时作为锚点，否则使用 now
  */
 function calculateEventDate(
   type: RecurringType,
   rule: RecurringRule,
   lastGeneratedFor: string,
-  now: Date
+  now: Date,
+  anchorDate?: Date
 ): Date {
+  // 首次计算时使用 anchorDate 替代 now 作为起始锚点
+  const base = anchorDate ?? now;
   switch (type) {
     case "daily": {
       if (!lastGeneratedFor)
-        return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        return new Date(base.getFullYear(), base.getMonth(), base.getDate());
       const parsed = parseDateStr(lastGeneratedFor);
       if (!parsed) return new Date(now);
       parsed.setDate(parsed.getDate() + 1);
@@ -78,11 +82,11 @@ function calculateEventDate(
       const wRule = rule as WeeklyRule;
       const targetDay = wRule.dayOfWeek;
       if (!lastGeneratedFor) {
-        const d = new Date(now);
+        const d = new Date(base);
         d.setHours(0, 0, 0, 0);
         const diff = (targetDay - d.getDay() + 7) % 7;
         d.setDate(d.getDate() + (diff === 0 ? 0 : diff));
-        if (toDateStr(d) < toDateStr(now)) d.setDate(d.getDate() + 7);
+        if (toDateStr(d) < toDateStr(base)) d.setDate(d.getDate() + 7);
         return d;
       }
       const parsed = parseDateStr(lastGeneratedFor);
@@ -104,7 +108,7 @@ function calculateEventDate(
       const mRule = rule as MonthlyRule;
       const dayNum = Math.min(mRule.day, 28);
       if (!lastGeneratedFor) {
-        const d = new Date(now);
+        const d = new Date(base);
         d.setHours(0, 0, 0, 0);
         d.setDate(
           Math.min(
@@ -112,7 +116,7 @@ function calculateEventDate(
             new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
           )
         );
-        if (toDateStr(d) < toDateStr(now)) {
+        if (toDateStr(d) < toDateStr(base)) {
           d.setMonth(d.getMonth() + 1);
           d.setDate(
             Math.min(
@@ -149,7 +153,7 @@ function calculateEventDate(
     case "yearly": {
       const yRule = rule as YearlyRule;
       if (!lastGeneratedFor) {
-        const d = new Date(now);
+        const d = new Date(base);
         d.setHours(0, 0, 0, 0);
         d.setMonth(yRule.month - 1);
         d.setDate(
@@ -158,7 +162,7 @@ function calculateEventDate(
             new Date(d.getFullYear(), yRule.month, 0).getDate()
           )
         );
-        if (toDateStr(d) < toDateStr(now)) {
+        if (toDateStr(d) < toDateStr(base)) {
           d.setFullYear(d.getFullYear() + 1);
           d.setDate(
             Math.min(
@@ -193,7 +197,7 @@ function calculateEventDate(
     case "interval": {
       const iRule = rule as IntervalRule;
       if (!lastGeneratedFor) {
-        const d = new Date(now);
+        const d = new Date(base);
         d.setHours(0, 0, 0, 0);
         d.setDate(d.getDate() + iRule.every);
         return d;
@@ -213,14 +217,19 @@ function calculateEventDate(
 /**
  * 计算新建模板时的初始 nextGenerateAt。
  * nextGenerateAt = 首个事件日期 - leadDays
+ * @param startDate 可选开始日期 YYYY-MM-DD，指定后首个事件从该日期起算
  */
 export function computeInitialNextGenerateAt(
   type: RecurringType,
   rule: RecurringRule,
   leadDays: number,
-  now = new Date()
+  now = new Date(),
+  startDate?: string
 ): string {
-  const eventDate = calculateEventDate(type, rule, "", now);
+  const anchorDate = startDate
+    ? (parseDateStr(startDate) ?? undefined)
+    : undefined;
+  const eventDate = calculateEventDate(type, rule, "", now, anchorDate);
   return toDateStr(subDays(eventDate, leadDays));
 }
 

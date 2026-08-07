@@ -73,6 +73,81 @@
 }
 
 @layer utilities {
+  .toolkit-shell {
+    --background: #f7f1e6;
+    --foreground: #202522;
+    --card: #fffaf0;
+    --card-foreground: #202522;
+    --popover: #fffaf0;
+    --popover-foreground: #202522;
+    --primary: #2d5144;
+    --primary-foreground: #fffaf0;
+    --secondary: #dbe5dc;
+    --secondary-foreground: #202522;
+    --muted: #ebe2d2;
+    --muted-foreground: #5d6258;
+    --accent: #f2dfbf;
+    --accent-foreground: #202522;
+    --destructive: #a94335;
+    --destructive-foreground: #fffaf0;
+    --border: #263d35;
+    --input: #263d35;
+    --ring: #b16d32;
+    --shadow-hard-sm: 2px 2px 0px 0px #263d35;
+    --shadow-hard: 4px 4px 0px 0px #263d35;
+    --shadow-hard-lg: 8px 8px 0px 0px #263d35;
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  .toolkit-shell .file-type-text {
+    --file-color: #68747a;
+    --file-tint: #e4e9e8;
+  }
+  .toolkit-shell .file-type-word {
+    --file-color: #3d5f9b;
+    --file-tint: #e0e8f6;
+  }
+  .toolkit-shell .file-type-excel {
+    --file-color: #3f7654;
+    --file-tint: #dfecdf;
+  }
+  .toolkit-shell .file-type-ppt {
+    --file-color: #c56c35;
+    --file-tint: #f6e2d2;
+  }
+  .toolkit-shell .file-type-default {
+    --file-color: #675879;
+    --file-tint: #ebe2f0;
+  }
+  .toolkit-shell .file-type-button {
+    border-color: var(--file-color);
+    color: var(--file-color);
+    background-color: var(--card);
+  }
+  .toolkit-shell .file-type-button[data-selected="true"] {
+    color: var(--card);
+    background-color: var(--file-color);
+  }
+  .toolkit-shell .file-type-button:hover {
+    background-color: var(--file-tint);
+  }
+  .toolkit-shell .file-type-button[data-selected="true"]:hover {
+    background-color: var(--file-color);
+  }
+  .toolkit-shell .file-result:hover {
+    background-color: var(--file-tint);
+  }
+  .toolkit-shell .file-result-marker {
+    width: 5px;
+    align-self: stretch;
+    background-color: var(--file-color);
+  }
+  .toolkit-shell .file-result-badge {
+    color: var(--file-color);
+    background-color: var(--file-tint);
+  }
+
   .neo-border {
     border: 3px solid var(--border);
   }

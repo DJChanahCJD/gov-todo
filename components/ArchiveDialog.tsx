@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { Archive, Trash2, Search } from "lucide-react";
-import type { Task } from "@/lib/types";
+import { Archive, Search } from "lucide-react";
+import type { Task, Quadrant } from "@/lib/types";
 import { useTaskStore, selectArchived } from "@/stores/task-store";
 import {
   Dialog,
@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +22,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { TaskItem } from "@/components/TaskItem";
+import { AddTaskDialog } from "@/components/AddTaskDialog";
+
+/** 象限强调色（与 QuadrantCard 一致） */
+const QUADRANT_CONFIG: Record<Quadrant, { accentColor: string }> = {
+  0: { accentColor: "#ef4444" },
+  1: { accentColor: "#22c55e" },
+  2: { accentColor: "#3b82f6" },
+  3: { accentColor: "#9ca3af" },
+};
 
 interface ArchiveDialogProps {
   open: boolean;
@@ -57,9 +66,11 @@ export function ArchiveDialog({
   onOpenChange,
   tasks,
 }: ArchiveDialogProps) {
-  const { remove } = useTaskStore();
+  const { remove, toggleComplete } = useTaskStore();
   const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
+  const [restoreTarget, setRestoreTarget] = useState<Task | null>(null);
+  const [viewTarget, setViewTarget] = useState<Task | null>(null);
 
   const archived = useMemo(() => selectArchived(tasks), [tasks]);
 
@@ -74,7 +85,7 @@ export function ArchiveDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
+        <DialogContent className="sm:max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Archive className="h-5 w-5" strokeWidth={2.5} />
@@ -82,17 +93,17 @@ export function ArchiveDialog({
             </DialogTitle>
           </DialogHeader>
 
-          <div className="relative">
+          <div className="relative shrink-0">
             <Input
               placeholder="搜索归档任务…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
             />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
           </div>
 
-          <ScrollArea className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto neo-scroll">
             {filtered.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
                 {archived.length === 0 ? "暂无归档任务" : "无匹配结果"}
@@ -108,35 +119,39 @@ export function ArchiveDialog({
                     </div>
                     <div className="space-y-1.5">
                       {items.map((task) => (
-                        <div
+                        <TaskItem
                           key={task.id}
-                          className="group flex items-center space-x-2 border-[3px] border-border bg-card p-2"
-                        >
-                          <span className="flex-1 min-w-0 text-sm text-muted-foreground truncate">
-                            {task.title}
-                          </span>
-                          <span className="stamp text-[10px] text-muted-foreground/70 shrink-0">
-                            {task.completedAt &&
-                              format(parseISO(task.completedAt), "HH:mm")}
-                          </span>
-                          <button
-                            onClick={() => setDeleteTarget(task)}
-                            title="删除"
-                            aria-label="删除"
-                            className="h-7 w-7 flex items-center justify-center border-[3px] border-border bg-background text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
+                          task={task}
+                          archived
+                          onView={setViewTarget}
+                          onToggleComplete={setRestoreTarget}
+                          onDelete={setDeleteTarget}
+                          itemBg="bg-card"
+                          accentColor={
+                            QUADRANT_CONFIG[task.quadrant].accentColor
+                          }
+                        />
                       ))}
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
+
+      <AddTaskDialog
+        open={!!viewTarget}
+        onOpenChange={(open) => {
+          if (!open) setViewTarget(null);
+        }}
+        editTask={viewTarget}
+        readOnly
+        dialogTitle="归档任务详情"
+        onRestore={(task) => setRestoreTarget(task)}
+        onDelete={(task) => setDeleteTarget(task)}
+      />
 
       <AlertDialog
         open={!!deleteTarget}
@@ -161,6 +176,31 @@ export function ArchiveDialog({
               )}
             >
               删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!restoreTarget}
+        onOpenChange={() => setRestoreTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认撤回？</AlertDialogTitle>
+            <AlertDialogDescription>
+              将任务「{restoreTarget?.title}」撤回到四象限任务列表。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (restoreTarget) toggleComplete(restoreTarget.id);
+                setRestoreTarget(null);
+              }}
+            >
+              撤回
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

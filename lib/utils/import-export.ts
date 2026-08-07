@@ -1,5 +1,7 @@
 import type { Task, RecurringTemplate, ExportData } from "@/lib/types";
+import { QUADRANT_LABELS } from "@/lib/types";
 import { putTask, putTemplate } from "@/lib/db/db";
+import { format, isValid, parseISO } from "date-fns";
 
 /** 导出数据为 JSON 文件下载 */
 export function exportData(
@@ -20,6 +22,47 @@ export function exportData(
   const a = document.createElement("a");
   a.href = url;
   a.download = `gov-todo-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/** 导出全部任务为 CSV 文件下载 */
+export function exportTasksCsv(tasks: Task[]): void {
+  const headers = [
+    "标题",
+    "描述",
+    "状态",
+    "截止时间",
+    "象限",
+    "创建时间",
+    "完成时间",
+  ];
+  const escapeCsv = (value: string | undefined): string =>
+    `"${(value ?? "").replace(/"/g, '""')}"`;
+  const formatDate = (value: string | undefined, pattern: string): string => {
+    if (!value) return "";
+    const date = parseISO(value);
+    return isValid(date) ? format(date, pattern) : value;
+  };
+  const rows = tasks.map((task) => [
+    task.title,
+    task.description,
+    task.completedAt ? "已归档" : "活跃",
+    formatDate(task.deadline, "yyyy-MM-dd"),
+    QUADRANT_LABELS[task.quadrant].subtitle,
+    formatDate(task.createdAt, "yyyy-MM-dd HH:mm"),
+    formatDate(task.completedAt, "yyyy-MM-dd HH:mm"),
+  ]);
+  const csv = [headers, ...rows]
+    .map((row) => row.map(escapeCsv).join(","))
+    .join("\r\n");
+  const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `gov-todo-tasks-${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

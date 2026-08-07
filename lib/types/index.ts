@@ -62,6 +62,7 @@ export interface RecurringTemplate {
   type: RecurringType;
   rule: RecurringRule;
   leadDays: number; // 提前多少天出现在 TODO 列表
+  startDate?: string; // 开始日期 YYYY-MM-DD，为空则从今天开始
   lastGeneratedFor: string; // 周期标识（如 "2026" / "2026-07" / "2026-07-25"）
   nextGenerateAt: string; // 下次生成时间 ISO 字符串
   enabled: boolean;

@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { isValid, parseISO } from "date-fns";
-import { Flame, Calendar, Users, Parasol } from "lucide-react";
+import {
+  Flame,
+  Calendar,
+  Users,
+  Parasol,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +30,14 @@ interface AddTaskDialogProps {
   editTask?: Task | null;
   /** 预设象限（新建时） */
   defaultQuadrant?: Quadrant;
+  /** 只读详情模式 */
+  readOnly?: boolean;
+  /** 自定义详情标题 */
+  dialogTitle?: string;
+  /** 只读详情中的撤回操作 */
+  onRestore?: (task: Task) => void;
+  /** 只读详情中的删除操作 */
+  onDelete?: (task: Task) => void;
 }
 
 /** 象限视觉配置 */
@@ -49,6 +64,10 @@ export function AddTaskDialog({
   onOpenChange,
   editTask,
   defaultQuadrant = 1,
+  readOnly = false,
+  dialogTitle,
+  onRestore,
+  onDelete,
 }: AddTaskDialogProps) {
   const { add, update } = useTaskStore();
 
@@ -123,7 +142,9 @@ export function AddTaskDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "编辑任务" : "新建任务"}</DialogTitle>
+          <DialogTitle>
+            {dialogTitle ?? (isEdit ? "编辑任务" : "新建任务")}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div className="space-y-2">
@@ -133,8 +154,9 @@ export function AddTaskDialog({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="任务标题"
-              onKeyDown={(e) => e.key === "Enter" && handleSave()}
-              autoFocus
+              onKeyDown={(e) => !readOnly && e.key === "Enter" && handleSave()}
+              readOnly={readOnly}
+              autoFocus={!readOnly}
             />
           </div>
           <div className="space-y-2">
@@ -145,6 +167,7 @@ export function AddTaskDialog({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="补充说明"
               rows={3}
+              readOnly={readOnly}
             />
           </div>
           <div className="space-y-2">
@@ -161,6 +184,7 @@ export function AddTaskDialog({
                 setDeadlineError(validateDeadline(v));
               }}
               aria-invalid={!!deadlineError}
+              disabled={readOnly}
             />
             {deadlineError && (
               <p className="text-xs text-destructive mt-1">{deadlineError}</p>
@@ -179,6 +203,7 @@ export function AddTaskDialog({
                     key={q}
                     type="button"
                     onClick={() => setQuadrant(q)}
+                    disabled={readOnly}
                     className={cn(
                       "flex items-center space-x-2 p-2 border-[3px] transition-all",
                       isSelected
@@ -214,11 +239,40 @@ export function AddTaskDialog({
           </div>
           <div className="flex justify-end space-x-2 pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              取消
+              {readOnly ? "关闭" : "取消"}
             </Button>
-            <Button onClick={handleSave} disabled={!title.trim() || saving}>
-              {saving ? "保存中..." : isEdit ? "保存" : "创建"}
-            </Button>
+            {readOnly && editTask ? (
+              <>
+                {onRestore && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      onRestore(editTask);
+                      onOpenChange(false);
+                    }}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    撤回
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      onDelete(editTask);
+                      onOpenChange(false);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    删除
+                  </Button>
+                )}
+              </>
+            ) : (
+              <Button onClick={handleSave} disabled={!title.trim() || saving}>
+                {saving ? "保存中..." : isEdit ? "保存" : "创建"}
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
