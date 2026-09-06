@@ -12,8 +12,9 @@ const tag = `v${version}`;
 // 1. 构建单文件产物 dist/index.html（含 typecheck 与 CSS 兼容检查）
 run("npm run build");
 
-// 2. 推送代码，确保 Release tag 指向最新提交
+// 2. 推送代码与版本 tag，确保 Release tag 在远端存在
 run("git push");
+run(`git push origin ${tag}`);
 
 // 3. 重命名产物并创建 Release（gh 自动在远端创建 tag，附件即应用本体）
 copyFileSync("dist/index.html", "gov-todo.html");

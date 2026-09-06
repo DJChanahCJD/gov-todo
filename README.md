@@ -24,4 +24,4 @@ npm run build      # 构建单文件产物 dist/index.html
 npm run release    # 一键发版：构建 → 推送 → 创建 GitHub Release（附件 gov-todo.html）
 ```
 
-发版前更新 `package.json` 中的 `version`，脚本会以此生成 `vX.Y.Z` 标签。
+发版前通过 `npm version patch/minor/major` 更新 `package.json` 中的 `version`，脚本会以此生成 `vX.Y.Z` 标签。
