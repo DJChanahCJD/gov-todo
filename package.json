@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
+    "release": "node scripts/release.mjs",
     "ci:static": "npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {
