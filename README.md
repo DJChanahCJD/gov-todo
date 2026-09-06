@@ -21,7 +21,14 @@ npm run build      # 构建单文件产物 dist/index.html
 ## 发版
 
 ```powershell
-npm run release    # 一键发版：构建 → 推送 → 创建 GitHub Release（附件 gov-todo.html）
+npm version patch    # 更新版本号 + commit + 本地 tag
+npm run release      # 构建 → 推送分支与 tag → 创建 GitHub Release（附件 gov-todo.html）
 ```
 
-发版前通过 `npm version patch/minor/major` 更新 `package.json` 中的 `version`，脚本会以此生成 `vX.Y.Z` 标签。
+各步骤相互独立、幂等，失败后可从对应步骤重试：
+
+| 失败位置 | 重试命令                                     |
+| -------- | -------------------------------------------- |
+| 构建     | `npm run release:build`                      |
+| 推送     | `npm run release:push`                       |
+| Release  | `npm run release:github`（已存在则自动跳过） |
