@@ -1,3 +1,4 @@
+/* global console, process */
 /**
  * 构建后 CSS 兼容性检查
  * 检测 dist 目录中是否包含统信 UOS (Chromium 87) 不支持的 CSS 特性

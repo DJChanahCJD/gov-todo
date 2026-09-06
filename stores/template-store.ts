@@ -91,7 +91,7 @@ export const useTemplateStore = create<TemplateState>()((set, get) => ({
     const idx = templates.findIndex((t) => t.id === id);
     if (idx === -1) return;
 
-    let updated = { ...templates[idx], ...data };
+    const updated = { ...templates[idx], ...data };
 
     // 若 type/rule/leadDays/startDate 变化，重新计算 nextGenerateAt
     const typeChanged =

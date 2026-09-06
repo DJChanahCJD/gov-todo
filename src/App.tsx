@@ -65,7 +65,7 @@ export default function App() {
         });
       }
     }
-  }, [loading, templates]);
+  }, [loading, templates, tasks, addTask]);
 
   /** 打开新建弹窗（指定象限） */
   const openAdd = useCallback((quadrant: number) => {

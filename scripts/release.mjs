@@ -1,3 +1,4 @@
+/* global console */
 // scripts/release.mjs — 本地一键发版：构建 → 推送 → 创建 GitHub Release 并上传单文件
 import { readFileSync, copyFileSync, unlinkSync } from "node:fs";
 import { execSync } from "node:child_process";

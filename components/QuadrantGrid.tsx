@@ -13,7 +13,7 @@ export function QuadrantGrid({
   onEdit,
   onAddToQuadrant,
 }: QuadrantGridProps) {
-  const handleDragStart = (_e: React.DragEvent, _task: Task) => {
+  const handleDragStart = () => {
     // 拖拽即可；drop 在 QuadrantCard 中处理
   };
 

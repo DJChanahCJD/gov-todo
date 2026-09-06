@@ -263,7 +263,7 @@ export function generateInstances(
   for (const template of templates) {
     if (!template.enabled) continue;
 
-    let t = { ...template };
+    const t = { ...template };
     let changed = false;
 
     while (new Date(t.nextGenerateAt) <= now) {

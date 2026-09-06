@@ -23,7 +23,7 @@ export type RecurringType =
   | "interval";
 
 /** 每天（无额外参数） */
-export interface DailyRule {}
+export type DailyRule = object;
 
 /** 每周：指定星期几 0=周日 1=周一 ... 6=周六 */
 export interface WeeklyRule {
