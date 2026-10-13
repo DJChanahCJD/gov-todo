@@ -5,25 +5,57 @@ const DB_VERSION = 2;
 const TASK_STORE = "tasks";
 const TEMPLATE_STORE = "templates";
 
-/** 打开/初始化 IndexedDB */
+/** 连接单例：复用同一 IDBDatabase，避免每次操作泄漏句柄 */
+let dbPromise: Promise<IDBDatabase> | null = null;
+
+/** 把 IndexedDB 底层错误转为可展示的中文提示 */
+export function describeDbError(err: unknown): string {
+  if (err instanceof DOMException) {
+    if (err.name === "QuotaExceededError")
+      return "存储空间已满，请先清理浏览器数据或导出备份后重试";
+    if (err.name === "VersionError")
+      return "数据库版本不兼容，请使用最新版本页面";
+    if (err.name === "UnknownError")
+      return "存储被浏览器占用，请关闭其他同源页面后重试";
+  }
+  return "本地存储操作失败";
+}
+
+/** 打开/初始化 IndexedDB（单例） */
 function open(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise;
+
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      // 模板存储结构变更，删除旧 store 重建
-      if (db.objectStoreNames.contains(TEMPLATE_STORE)) {
-        db.deleteObjectStore(TEMPLATE_STORE);
-      }
-      db.createObjectStore(TEMPLATE_STORE, { keyPath: "id" });
-
+      // 仅补建缺失的 store，绝不删除已有 store（删除会导致数据丢失）
       if (!db.objectStoreNames.contains(TASK_STORE)) {
         db.createObjectStore(TASK_STORE, { keyPath: "id" });
       }
+      if (!db.objectStoreNames.contains(TEMPLATE_STORE)) {
+        db.createObjectStore(TEMPLATE_STORE, { keyPath: "id" });
+      }
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      // 其他标签页升级时主动让出连接，避免阻塞
+      db.onversionchange = () => {
+        db.close();
+        dbPromise = null;
+      };
+      resolve(db);
+    };
+    request.onerror = () => {
+      dbPromise = null;
+      reject(request.error);
+    };
+    request.onblocked = () => {
+      console.warn("gov-todo 数据库升级被其他页面阻塞");
+    };
   });
+
+  return dbPromise;
 }
 
 /** 通用事务辅助 */
@@ -39,6 +71,9 @@ function tx(
     const req = handler(s);
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
+    // 事务级错误（如配额超限）也在此捕获
+    t.onerror = () => reject(t.error ?? req.error);
+    t.onabort = () => reject(t.error);
   });
 }
 

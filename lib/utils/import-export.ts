@@ -1,7 +1,10 @@
 import type { Task, RecurringTemplate, ExportData } from "@/lib/types";
 import { QUADRANT_LABELS } from "@/lib/types";
-import { putTask, putTemplate } from "@/lib/db/db";
+import { putTask, putTemplate, describeDbError } from "@/lib/db/db";
 import { format, isValid, parseISO } from "date-fns";
+
+/** 当前支持的导出数据版本 */
+const EXPORT_VERSION = 1;
 
 /** 导出数据为 JSON 文件下载 */
 export function exportData(
@@ -9,7 +12,7 @@ export function exportData(
   templates: RecurringTemplate[]
 ): void {
   const data: ExportData = {
-    version: 1,
+    version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
     tasks,
     templates,
@@ -89,19 +92,31 @@ export async function importData(
     throw new Error("文件格式不正确，缺少 tasks 或 templates 字段");
   }
 
+  // 高版本数据可能含未知字段，直接导入会损坏本地库
+  if (data.version > EXPORT_VERSION) {
+    throw new Error(
+      `备份版本（v${data.version}）高于当前程序（v${EXPORT_VERSION}），请使用最新版本页面后再导入`
+    );
+  }
+
   let taskCount = 0;
   let templateCount = 0;
 
-  for (const task of data.tasks) {
-    if (!task.id || !task.title || task.quadrant === undefined) continue;
-    await putTask(task as Task);
-    taskCount++;
-  }
+  try {
+    for (const task of data.tasks) {
+      if (!task.id || !task.title || task.quadrant === undefined) continue;
+      await putTask(task as Task);
+      taskCount++;
+    }
 
-  for (const tpl of data.templates) {
-    if (!tpl.id || !tpl.title || !tpl.type) continue;
-    await putTemplate(tpl as RecurringTemplate);
-    templateCount++;
+    for (const tpl of data.templates) {
+      if (!tpl.id || !tpl.title || !tpl.type) continue;
+      await putTemplate(tpl as RecurringTemplate);
+      templateCount++;
+    }
+  } catch (e) {
+    console.error("导入写入失败", e);
+    throw new Error(describeDbError(e));
   }
 
   return { tasks: taskCount, templates: templateCount };

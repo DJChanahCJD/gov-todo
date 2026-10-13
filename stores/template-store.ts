@@ -44,6 +44,18 @@ interface TemplateState {
   remove: (id: string) => Promise<void>;
 }
 
+/**
+ * 执行写操作，失败时 toast 提示（如存储配额已满）。
+ */
+async function persist(action: () => Promise<void>): Promise<void> {
+  try {
+    await action();
+  } catch (e) {
+    console.error("模板写入失败", e);
+    toast.error(db.describeDbError(e));
+  }
+}
+
 export const useTemplateStore = create<TemplateState>()((set, get) => ({
   templates: [],
   loading: true,
@@ -80,7 +92,7 @@ export const useTemplateStore = create<TemplateState>()((set, get) => ({
       ),
       enabled: true,
     };
-    await db.putTemplate(template);
+    await persist(() => db.putTemplate(template));
     set((s) => ({ templates: [...s.templates, template] }));
     toast.success("模板已创建");
     return template;
@@ -123,12 +135,12 @@ export const useTemplateStore = create<TemplateState>()((set, get) => ({
       );
     }
 
-    await db.putTemplate(updated);
+    await persist(() => db.putTemplate(updated));
     set({ templates: templates.map((t) => (t.id === id ? updated : t)) });
   },
 
   remove: async (id) => {
-    await db.deleteTemplate(id);
+    await persist(() => db.deleteTemplate(id));
     set((s) => ({ templates: s.templates.filter((t) => t.id !== id) }));
     toast.success("模板已删除");
   },

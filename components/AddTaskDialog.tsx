@@ -18,6 +18,16 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Task, Quadrant } from "@/lib/types";
 import { QUADRANT_LABELS } from "@/lib/types";
 import { useTaskStore } from "@/stores/task-store";
@@ -69,7 +79,7 @@ export function AddTaskDialog({
   onRestore,
   onDelete,
 }: AddTaskDialogProps) {
-  const { add, update } = useTaskStore();
+  const { add, update, remove } = useTaskStore();
 
   const [title, setTitle] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -77,6 +87,7 @@ export function AddTaskDialog({
   const [description, setDescription] = useState("");
   const [quadrant, setQuadrant] = useState<Quadrant>(defaultQuadrant);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const isEdit = !!editTask;
 
@@ -106,6 +117,14 @@ export function AddTaskDialog({
       }
     }
   }, [open, editTask, defaultQuadrant]);
+
+  /** 确认后硬删除任务 */
+  async function handleDelete() {
+    if (!editTask) return;
+    await remove(editTask.id);
+    setConfirmDelete(false);
+    onOpenChange(false);
+  }
 
   async function handleSave() {
     const trimmed = title.trim();
@@ -139,143 +158,181 @@ export function AddTaskDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {dialogTitle ?? (isEdit ? "编辑任务" : "新建任务")}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 pt-2">
-          <div className="space-y-2">
-            <Label htmlFor="title">标题</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="任务标题"
-              onKeyDown={(e) => !readOnly && e.key === "Enter" && handleSave()}
-              readOnly={readOnly}
-              autoFocus={!readOnly}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">描述（可选）</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="补充说明"
-              rows={3}
-              readOnly={readOnly}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="deadline">截止时间（可选）</Label>
-            <Input
-              id="deadline"
-              type="date"
-              min="2000-01-01"
-              max="2099-12-31"
-              value={deadline}
-              onChange={(e) => {
-                const v = e.target.value;
-                setDeadline(v);
-                setDeadlineError(validateDeadline(v));
-              }}
-              aria-invalid={!!deadlineError}
-              disabled={readOnly}
-            />
-            {deadlineError && (
-              <p className="text-xs text-destructive mt-1">{deadlineError}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label>象限</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {([0, 1, 2, 3] as Quadrant[]).map((q) => {
-                const cfg = QUADRANT_CONFIG[q];
-                const { title, subtitle } = QUADRANT_LABELS[q];
-                const Icon = cfg.icon;
-                const isSelected = quadrant === q;
-                return (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => setQuadrant(q)}
-                    disabled={readOnly}
-                    className={cn(
-                      "flex items-center space-x-2 p-2 border-[3px] transition-all",
-                      isSelected
-                        ? "shadow-brutal-sm"
-                        : "border-border bg-card hover:bg-muted"
-                    )}
-                    style={
-                      isSelected
-                        ? {
-                            borderColor: cfg.accentColor,
-                            backgroundColor: `${cfg.accentColor}15`,
-                          }
-                        : undefined
-                    }
-                  >
-                    <Icon
-                      className="h-4 w-4 shrink-0"
-                      style={{ color: cfg.accentColor }}
-                      strokeWidth={2.5}
-                    />
-                    <div className="flex flex-col items-start text-left">
-                      <span className="font-bold text-sm uppercase leading-tight">
-                        {title}
-                      </span>
-                      <span className="text-xs text-muted-foreground leading-tight">
-                        {subtitle}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {dialogTitle ?? (isEdit ? "编辑任务" : "新建任务")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label htmlFor="title">标题</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="任务标题"
+                onKeyDown={(e) =>
+                  !readOnly && e.key === "Enter" && handleSave()
+                }
+                readOnly={readOnly}
+                autoFocus={!readOnly}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">描述（可选）</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="补充说明"
+                rows={3}
+                readOnly={readOnly}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deadline">截止时间（可选）</Label>
+              <Input
+                id="deadline"
+                type="date"
+                min="2000-01-01"
+                max="2099-12-31"
+                value={deadline}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setDeadline(v);
+                  setDeadlineError(validateDeadline(v));
+                }}
+                aria-invalid={!!deadlineError}
+                disabled={readOnly}
+              />
+              {deadlineError && (
+                <p className="text-xs text-destructive mt-1">{deadlineError}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>象限</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {([0, 1, 2, 3] as Quadrant[]).map((q) => {
+                  const cfg = QUADRANT_CONFIG[q];
+                  const { title, subtitle } = QUADRANT_LABELS[q];
+                  const Icon = cfg.icon;
+                  const isSelected = quadrant === q;
+                  return (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => setQuadrant(q)}
+                      disabled={readOnly}
+                      className={cn(
+                        "flex items-center space-x-2 p-2 border-[3px] transition-all",
+                        isSelected
+                          ? "shadow-brutal-sm"
+                          : "border-border bg-card hover:bg-muted"
+                      )}
+                      style={
+                        isSelected
+                          ? {
+                              borderColor: cfg.accentColor,
+                              backgroundColor: `${cfg.accentColor}15`,
+                            }
+                          : undefined
+                      }
+                    >
+                      <Icon
+                        className="h-4 w-4 shrink-0"
+                        style={{ color: cfg.accentColor }}
+                        strokeWidth={2.5}
+                      />
+                      <div className="flex flex-col items-start text-left">
+                        <span className="font-bold text-sm uppercase leading-tight">
+                          {title}
+                        </span>
+                        <span className="text-xs text-muted-foreground leading-tight">
+                          {subtitle}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2 pt-2">
+              {/* 编辑态：左侧硬删除入口 */}
+              {isEdit && !readOnly && (
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmDelete(true)}
+                  className="mr-auto border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  删除
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                {readOnly ? "关闭" : "取消"}
+              </Button>
+              {readOnly && editTask ? (
+                <>
+                  {onRestore && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        onRestore(editTask);
+                        onOpenChange(false);
+                      }}
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      撤回
+                    </Button>
+                  )}
+                  {onDelete && (
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        onDelete(editTask);
+                        onOpenChange(false);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      删除
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <Button onClick={handleSave} disabled={!title.trim() || saving}>
+                  {saving ? "保存中..." : isEdit ? "保存" : "创建"}
+                </Button>
+              )}
             </div>
           </div>
-          <div className="flex justify-end space-x-2 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              {readOnly ? "关闭" : "取消"}
-            </Button>
-            {readOnly && editTask ? (
-              <>
-                {onRestore && (
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      onRestore(editTask);
-                      onOpenChange(false);
-                    }}
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    撤回
-                  </Button>
-                )}
-                {onDelete && (
-                  <Button
-                    variant="destructive"
-                    onClick={() => {
-                      onDelete(editTask);
-                      onOpenChange(false);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    删除
-                  </Button>
-                )}
-              </>
-            ) : (
-              <Button onClick={handleSave} disabled={!title.trim() || saving}>
-                {saving ? "保存中..." : isEdit ? "保存" : "创建"}
-              </Button>
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {/* 硬删除二次确认 */}
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除？</AlertDialogTitle>
+            <AlertDialogDescription>
+              将永久删除任务「{editTask?.title}」，此操作不可撤销。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className={cn(
+                "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              )}
+            >
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

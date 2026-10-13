@@ -233,9 +233,13 @@ export function computeInitialNextGenerateAt(
   return toDateStr(subDays(eventDate, leadDays));
 }
 
+/** 单个模板单次生成的最大迭代次数，防止规则异常导致死循环 */
+const MAX_ITERATIONS = 100;
+
 /** 生成任务数据 */
 export interface GeneratedInstance {
   title: string;
+  description: string;
   deadline: string;
   quadrant: Quadrant;
   templateId: string;
@@ -265,8 +269,15 @@ export function generateInstances(
 
     const t = { ...template };
     let changed = false;
+    let iterations = 0;
 
     while (new Date(t.nextGenerateAt) <= now) {
+      // 迭代上限兜底：规则异常导致事件日期不前进时退出，防止页面卡死
+      if (++iterations > MAX_ITERATIONS) {
+        console.warn("周期模板生成超出迭代上限，已中止", t.id, t.title);
+        break;
+      }
+
       const eventDate = calculateEventDate(
         t.type,
         t.rule,
@@ -291,6 +302,7 @@ export function generateInstances(
       // 事件日期在今天或之后 → 生成 TODO
       instances.push({
         title: t.title,
+        description: t.description,
         deadline: toDateStr(eventDate),
         quadrant: t.quadrant,
         templateId: t.id,

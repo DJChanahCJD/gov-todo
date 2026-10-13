@@ -20,6 +20,8 @@ interface TaskState {
     quadrant?: Quadrant;
     templateId?: string;
     description?: string;
+    /** 静默添加：周期任务批量生成时不弹 toast */
+    silent?: boolean;
   }) => Promise<Task>;
 
   /** 更新任务标题、截止时间或象限 */
@@ -47,6 +49,9 @@ interface TaskState {
 
   /** 删除已归档任务 */
   remove: (id: string) => Promise<void>;
+
+  /** 清空所有已归档任务 */
+  clearArchived: () => Promise<void>;
 }
 
 /** 按 deadline 排序，undefined 排最后 */
@@ -55,6 +60,19 @@ function byDeadline(a: Task, b: Task): number {
   if (a.deadline) return -1;
   if (b.deadline) return 1;
   return a.createdAt.localeCompare(b.createdAt);
+}
+
+/**
+ * 执行写操作，失败时 toast 提示（如存储配额已满）。
+ * 避免 Promise 静默失败让用户以为保存成功。
+ */
+async function persist(action: () => Promise<void>): Promise<void> {
+  try {
+    await action();
+  } catch (e) {
+    console.error("任务写入失败", e);
+    toast.error(db.describeDbError(e));
+  }
 }
 
 export const useTaskStore = create<TaskState>()((set, get) => ({
@@ -82,9 +100,9 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
       templateId: data.templateId,
       description: data.description,
     };
-    await db.putTask(task);
+    await persist(() => db.putTask(task));
     set((s) => ({ tasks: [...s.tasks, task] }));
-    toast.success("任务已创建");
+    if (!data.silent) toast.success("任务已创建");
     return task;
   },
 
@@ -99,7 +117,7 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
     if (data.quadrant !== undefined) updated.quadrant = data.quadrant;
     if (data.description !== undefined)
       updated.description = data.description ?? undefined;
-    await db.putTask(updated);
+    await persist(() => db.putTask(updated));
     set({ tasks: tasks.map((t) => (t.id === id ? updated : t)) });
   },
 
@@ -108,7 +126,7 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
     const idx = tasks.findIndex((t) => t.id === id);
     if (idx === -1) return;
     const updated: Task = { ...tasks[idx], pinned: !tasks[idx].pinned };
-    await db.putTask(updated);
+    await persist(() => db.putTask(updated));
     set({ tasks: tasks.map((t) => (t.id === id ? updated : t)) });
   },
 
@@ -117,7 +135,7 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
     const idx = tasks.findIndex((t) => t.id === id);
     if (idx === -1) return;
     const updated: Task = { ...tasks[idx], quadrant };
-    await db.putTask(updated);
+    await persist(() => db.putTask(updated));
     set({ tasks: tasks.map((t) => (t.id === id ? updated : t)) });
   },
 
@@ -129,7 +147,7 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
       ...tasks[idx],
       completedAt: new Date().toISOString(),
     };
-    await db.putTask(updated);
+    await persist(() => db.putTask(updated));
     set({ tasks: tasks.map((t) => (t.id === id ? updated : t)) });
     toast.success("任务已完成，已归档");
   },
@@ -143,15 +161,25 @@ export const useTaskStore = create<TaskState>()((set, get) => ({
       ...current,
       completedAt: current.completedAt ? undefined : new Date().toISOString(),
     };
-    await db.putTask(updated);
+    await persist(() => db.putTask(updated));
     set({ tasks: tasks.map((t) => (t.id === id ? updated : t)) });
     toast.success(current.completedAt ? "任务已恢复" : "任务已完成，已归档");
   },
 
   remove: async (id) => {
-    await db.deleteTask(id);
+    await persist(() => db.deleteTask(id));
     set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) }));
     toast.success("任务已删除");
+  },
+
+  clearArchived: async () => {
+    const archived = get().tasks.filter((t) => t.completedAt);
+    await persist(async () => {
+      await Promise.all(archived.map((t) => db.deleteTask(t.id)));
+    });
+    const ids = new Set(archived.map((t) => t.id));
+    set((s) => ({ tasks: s.tasks.filter((t) => !ids.has(t.id)) }));
+    toast.success(`已清空 ${archived.length} 条归档`);
   },
 }));
 

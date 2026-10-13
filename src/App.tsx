@@ -1,5 +1,11 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { Repeat, Archive as ArchiveIcon, Plus, Download } from "lucide-react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import {
+  Repeat,
+  Archive as ArchiveIcon,
+  Plus,
+  Download,
+  Search,
+} from "lucide-react";
 import { QuadrantGrid } from "@/components/QuadrantGrid";
 import { AddTaskDialog } from "@/components/AddTaskDialog";
 import { ArchiveDialog } from "@/components/ArchiveDialog";
@@ -21,6 +27,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import type { Task, Quadrant } from "@/lib/types";
+import { Input } from "@/components/ui/input";
 
 /** 应用入口 */
 export default function App() {
@@ -32,8 +39,23 @@ export default function App() {
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  /** 按标题或描述实时过滤任务（用于四象限展示） */
+  const filteredTasks = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return tasks;
+    return tasks.filter(
+      (t) =>
+        t.title.toLowerCase().includes(q) ||
+        (t.description ?? "").toLowerCase().includes(q)
+    );
+  }, [tasks, search]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  /** 已处理过的模板签名，避免 effect 重复触发 */
+  const generatedKeyRef = useRef<string>("");
 
   useEffect(() => {
     loadTasks();
@@ -42,8 +64,14 @@ export default function App() {
 
   /** 周期任务实例生成 */
   useEffect(() => {
-    if (loading) return;
-    if (templates.length === 0) return;
+    if (loading || templates.length === 0) return;
+
+    // 模板集合未变化则不重复生成
+    const key = templates
+      .map((t) => `${t.id}:${t.enabled}:${t.nextGenerateAt}`)
+      .join("|");
+    if (key === generatedKeyRef.current) return;
+    generatedKeyRef.current = key;
 
     const { instances, updatedTemplates } = generateInstances(templates);
 
@@ -52,20 +80,30 @@ export default function App() {
       putTemplate(tpl).catch((e) => console.error("持久化模板失败", tpl.id, e));
     }
 
+    // 从 store 直接读最新任务，避免把 tasks 放进依赖导致 effect 重跑
+    const existing = useTaskStore.getState().tasks;
+    let created = 0;
+
     for (const inst of instances) {
-      const exists = tasks.some(
+      const exists = existing.some(
         (t) => t.templateId === inst.templateId && t.deadline === inst.deadline
       );
-      if (!exists) {
-        addTask({
-          title: inst.title,
-          deadline: inst.deadline,
-          quadrant: inst.quadrant,
-          templateId: inst.templateId,
-        });
-      }
+      if (exists) continue;
+      addTask({
+        title: inst.title,
+        description: inst.description,
+        deadline: inst.deadline,
+        quadrant: inst.quadrant,
+        templateId: inst.templateId,
+        silent: true,
+      });
+      created++;
     }
-  }, [loading, templates, tasks, addTask]);
+
+    if (created > 0) {
+      toast.success(`已生成 ${created} 条周期任务`);
+    }
+  }, [loading, templates, addTask]);
 
   /** 打开新建弹窗（指定象限） */
   const openAdd = useCallback((quadrant: number) => {
@@ -151,6 +189,15 @@ export default function App() {
           工作清单
         </span>
         <div className="flex items-center space-x-1.5">
+          <div className="relative w-28 sm:w-32 md:w-36">
+            <Input
+              placeholder="搜索..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8 pl-8 text-sm"
+            />
+            <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+          </div>
           <button
             onClick={() => setArchiveOpen(true)}
             title="归档"
@@ -209,7 +256,7 @@ export default function App() {
       <main className="flex-1 min-h-0 p-2">
         <div className="h-full gazette-in">
           <QuadrantGrid
-            tasks={tasks}
+            tasks={filteredTasks}
             onEdit={openEdit}
             onAddToQuadrant={openAdd}
           />
